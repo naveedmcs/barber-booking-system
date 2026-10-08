@@ -1,0 +1,17 @@
+# ANTIGRAVITY EXECUTION RULES: Barber Booking Platform
+
+## 1. TOKEN PRESERVATION DIRECTIVES (STRICT)
+- NEVER explain what code does or write conversational openers/closers.
+- NEVER write markdown summaries, explanations, or "Here is what I did". Output pure code or CLI commands only.
+- Read ONLY the target section referenced in `docs/BRD.md`. Do not read the entire BRD per prompt.
+- Implement strictly what is asked in each step. Do NOT build future phases or unsolicited features.
+- Avoid large boilerplate where possible: use Lombok for Java entities and standard Tailwind CSS utility classes.
+
+## 2. TECHNOLOGY CONSTRAINTS
+- Backend: Java 21, Spring Boot 3.3.x, Spring Data JPA, Flyway, Spring Security, Redisson, WebSocket (STOMP).
+- Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide React, Zod.
+- Persistence: MySQL 8.0 with Flyway migrations; Redis 7.0 for distributed locking.
+- Business Invariants:
+  - Phone format: Saudi regex `^(\+9665|05)[0-9]{8}$`.
+  - Database constraint: `UNIQUE KEY uk_no_double_book (barber_id, slot_start, status)`.
+  - Concurrency: Use Redisson distributed lock (`lock:slot:{barberId}:{slotStart}`) + 5-minute hold TTL.

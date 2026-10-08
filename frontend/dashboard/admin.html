@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Super Admin Control Panel | Barber SaaS</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
+            luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../src/css/output.css" />
+</head>
+<body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 p-6 space-y-10">
+
+  <!-- Header -->
+  <header>
+    <span class="text-[10px] uppercase tracking-widest text-[#F59E0B] font-bold">Platform Management</span>
+    <h1 class="text-2xl font-extrabold text-white tracking-tight">Super Admin Override & Audit Control</h1>
+  </header>
+
+  <!-- Metric Overview Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="backdrop-blur-md bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-[#F59E0B]/40 transition">
+      <span class="text-xs font-semibold text-slate-400">Total Registered Shops</span>
+      <p id="metric-total-shops" class="text-2xl font-extrabold text-white mt-1">0</p>
+    </div>
+    <div class="backdrop-blur-md bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-emerald-500/40 transition">
+      <span class="text-xs font-semibold text-slate-400">Active Subscriptions</span>
+      <p id="metric-active-shops" class="text-2xl font-extrabold text-emerald-400 mt-1">0</p>
+    </div>
+    <div class="backdrop-blur-md bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-[#F59E0B]/40 transition">
+      <span class="text-xs font-semibold text-slate-400">Monthly Recurring Revenue</span>
+      <p id="metric-revenue" class="text-2xl font-extrabold text-[#F59E0B] mt-1">0 SAR</p>
+    </div>
+    <div class="backdrop-blur-md bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-blue-500/40 transition">
+      <span class="text-xs font-semibold text-slate-400">Auto-Approved (30 Days)</span>
+      <p id="metric-approved" class="text-2xl font-extrabold text-blue-400 mt-1">0</p>
+    </div>
+  </div>
+
+  <!-- Section 1: Shop Management & Manual Override -->
+  <section class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <h2 class="text-lg font-bold text-white">Shop Control & Manual Overrides</h2>
+      <input type="text" id="shop-search" placeholder="Search shop name, owner, or phone..." class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2 text-xs w-full sm:w-64 focus:outline-none focus:border-[#F59E0B]" />
+    </div>
+
+    <div class="overflow-x-auto">
+      <table className="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+            <th class="py-3 px-4">Shop Name</th>
+            <th class="py-3 px-4">Owner</th>
+            <th class="py-3 px-4">Phone</th>
+            <th class="py-3 px-4">City</th>
+            <th class="py-3 px-4">Plan</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4 text-right">Admin Action</th>
+          </tr>
+        </thead>
+        <tbody id="shops-table-body" class="divide-y divide-slate-800/60">
+          <!-- Rendered dynamically by admin.js -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 2: Audit Logs -->
+  <section class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-bold text-white">System Audit Log Viewer</h2>
+        <p class="text-xs text-slate-400">Security event tracking and administrative action records</p>
+      </div>
+      <button id="export-csv-btn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl border border-slate-700 transition flex items-center gap-2">
+        <span>📥 Export CSV</span>
+      </button>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table className="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
+            <th class="py-3 px-4">Timestamp</th>
+            <th class="py-3 px-4">User</th>
+            <th class="py-3 px-4">Shop</th>
+            <th class="py-3 px-4">Action</th>
+            <th class="py-3 px-4">Details</th>
+            <th class="py-3 px-4">IP Address</th>
+          </tr>
+        </thead>
+        <tbody id="audit-table-body" class="divide-y divide-slate-800/60">
+          <!-- Rendered dynamically by admin.js -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <script type="module" src="../src/js/admin.js"></script>
+</body>
+</html>

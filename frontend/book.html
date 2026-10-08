@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book Appointment | Barber SaaS</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN Fallback + Compiled Output -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
+            luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="./src/css/output.css" />
+</head>
+<body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 relative overflow-x-hidden">
+
+  <!-- Subtle Radial Background Glow -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-b from-[#F59E0B]/10 to-transparent blur-3xl pointer-events-none -z-10"></div>
+
+  <!-- Sticky Header with Hold Timer -->
+  <header class="border-b border-slate-800/80 bg-[#0B0F17]/90 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div>
+        <span class="text-[10px] uppercase tracking-widest text-[#F59E0B] font-bold">Luxury Salon Booking</span>
+        <h1 id="shop-title" class="text-lg font-bold text-white tracking-tight">GOLDEN SCISSORS SALON</h1>
+      </div>
+
+      <!-- 5-Minute Hold Timer Banner (Hidden by default) -->
+      <div id="hold-timer-container" class="hidden flex-col items-end">
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-[#F59E0B] text-xs font-mono font-bold shadow-lg shadow-[#F59E0B]/5">
+          <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span>Hold Expires: <strong id="timer-display">05:00</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animated Countdown Progress Bar -->
+    <div id="timer-bar-container" class="w-full bg-slate-800/50 h-1 hidden">
+      <div id="timer-progress" class="h-1 bg-gradient-to-r from-[#F59E0B] to-emerald-400 w-full transition-all duration-1000 ease-linear"></div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto px-4 py-8">
+
+    <!-- Stepper Navigation Header -->
+    <div class="flex items-center justify-between mb-8 overflow-x-auto pb-2 border-b border-slate-800/60">
+      <div class="step-nav-item flex items-center gap-2.5" data-step="1">
+        <div class="step-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-[#F59E0B] text-slate-950 ring-4 ring-[#F59E0B]/20">1</div>
+        <span class="text-xs font-semibold text-white">Barber</span>
+      </div>
+      <div class="w-8 h-0.5 bg-slate-800 hidden sm:block"></div>
+
+      <div class="step-nav-item flex items-center gap-2.5" data-step="2">
+        <div class="step-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-slate-800 text-slate-400">2</div>
+        <span class="text-xs font-semibold text-slate-400">Service</span>
+      </div>
+      <div class="w-8 h-0.5 bg-slate-800 hidden sm:block"></div>
+
+      <div class="step-nav-item flex items-center gap-2.5" data-step="3">
+        <div class="step-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-slate-800 text-slate-400">3</div>
+        <span class="text-xs font-semibold text-slate-400">Date & Slot</span>
+      </div>
+      <div class="w-8 h-0.5 bg-slate-800 hidden sm:block"></div>
+
+      <div class="step-nav-item flex items-center gap-2.5" data-step="4">
+        <div class="step-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-slate-800 text-slate-400">4</div>
+        <span class="text-xs font-semibold text-slate-400">Customer</span>
+      </div>
+      <div class="w-8 h-0.5 bg-slate-800 hidden sm:block"></div>
+
+      <div class="step-nav-item flex items-center gap-2.5" data-step="5">
+        <div class="step-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-slate-800 text-slate-400">5</div>
+        <span class="text-xs font-semibold text-slate-400">Confirmation</span>
+      </div>
+    </div>
+
+    <!-- Step Container Content (Rendered dynamically by booking-stepper.js) -->
+    <div id="step-content" class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl">
+      <!-- Dynamic Content Loaded Here -->
+    </div>
+
+  </main>
+
+  <script type="module" src="./src/js/booking-stepper.js"></script>
+</body>
+</html>

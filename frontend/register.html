@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop Onboarding & Registration | Barber SaaS</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
+            luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="./src/css/output.css" />
+</head>
+<body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 relative overflow-x-hidden p-6">
+
+  <!-- Glow Background -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-b from-[#F59E0B]/10 to-transparent blur-3xl pointer-events-none -z-10"></div>
+
+  <!-- Header -->
+  <header class="max-w-3xl mx-auto flex items-center justify-between py-4 mb-8 border-b border-slate-800">
+    <div>
+      <span class="text-[10px] uppercase tracking-widest text-[#F59E0B] font-bold">Salon Partner Program</span>
+      <h1 class="text-xl font-bold text-white tracking-tight">Barber Shop Self-Registration Portal</h1>
+    </div>
+    <a href="./index.html" class="text-xs text-slate-400 hover:text-white transition">← Main Portal</a>
+  </header>
+
+  <!-- Onboarding Form Container -->
+  <main class="max-w-3xl mx-auto backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+    <div class="border-b border-slate-800 pb-4">
+      <h2 class="text-lg font-bold text-white">Register Your Salon or Barber Shop</h2>
+      <p class="text-xs text-slate-400 mt-1">Configure shop details, photos, team barbers, services, and subscription plan</p>
+    </div>
+
+    <form id="onboarding-form" class="space-y-6">
+      
+      <!-- Section 1: Owner Credentials -->
+      <div class="space-y-4">
+        <h3 class="text-xs uppercase tracking-wider text-[#F59E0B] font-bold">1. Shop Owner Credentials</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Owner Full Name *</label>
+            <input type="text" id="ownerFullName" required placeholder="e.g. Tariq Al-Mansoor" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Owner Email Address *</label>
+            <input type="email" id="ownerEmail" required placeholder="owner@barbershop.sa" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Account Password *</label>
+          <input type="password" id="ownerPassword" required placeholder="SecurePassword123!" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+        </div>
+      </div>
+
+      <!-- Section 2: Shop Details & Saudi Address -->
+      <div class="space-y-4 pt-2 border-t border-slate-800">
+        <h3 class="text-xs uppercase tracking-wider text-[#F59E0B] font-bold">2. Shop & Location Information</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Shop Name *</label>
+            <input type="text" id="shopName" required placeholder="e.g. Golden Scissors Salon" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Saudi Phone Number (+966) *</label>
+            <input type="tel" id="phone" required placeholder="+966 501234567" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+            <p id="phone-err" class="text-[10px] text-red-400 hidden mt-1">Invalid Saudi phone number format (+9665XXXXXXXX or 05XXXXXXXX)</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Region *</label>
+            <input type="text" id="region" required placeholder="Riyadh Region" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">District *</label>
+            <input type="text" id="district" required placeholder="Olaya" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">City *</label>
+            <input type="text" id="city" required placeholder="Riyadh" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Full Address *</label>
+          <input type="text" id="fullAddress" required placeholder="King Fahd Road, Building 42, Olaya" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#F59E0B]" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Google Maps Short Address / Plus Code</label>
+          <input type="text" id="mapAddress" placeholder="e.g. 7JQC+RP Riyadh" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#F59E0B]" />
+        </div>
+      </div>
+
+      <!-- Section 3: Salon Photos Upload with Auto-Compress & Preview -->
+      <div class="space-y-4 pt-2 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs uppercase tracking-wider text-[#F59E0B] font-bold">3. Salon Photos (Max 10 photos, up to 5MB each)</h3>
+          <span id="photo-count-badge" class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full">0 / 10 Photos Uploaded</span>
+        </div>
+
+        <div class="border-2 border-dashed border-slate-700 hover:border-[#F59E0B] rounded-2xl p-6 text-center cursor-pointer transition relative bg-slate-900/40">
+          <input type="file" id="salon-photos" multiple accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" />
+          <div class="space-y-1">
+            <span class="text-3xl block">📸</span>
+            <p class="text-xs text-white font-semibold">Click or Drag & Drop Salon Photos Here</p>
+            <p class="text-[10px] text-slate-400">Supports JPG, PNG, WebP • Large images (> 500KB) auto-compressed on client</p>
+          </div>
+        </div>
+
+        <!-- Photos Preview Grid -->
+        <div id="photos-preview-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-3 empty:hidden"></div>
+      </div>
+
+      <!-- Section 4: Barbers Management -->
+      <div class="space-y-4 pt-2 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs uppercase tracking-wider text-[#F59E0B] font-bold">4. Salon Barbers</h3>
+            <p class="text-[10px] text-slate-400">Add the barbers working in your salon</p>
+          </div>
+          <button type="button" id="add-barber-btn" class="px-3 py-1.5 bg-slate-800 hover:bg-[#F59E0B] hover:text-slate-950 text-white font-bold text-xs rounded-xl transition">
+            + Add Barber
+          </button>
+        </div>
+
+        <div id="barbers-list-container" class="space-y-3">
+          <!-- Rendered dynamically by register.js -->
+        </div>
+      </div>
+
+      <!-- Section 5: Service Types Management -->
+      <div class="space-y-4 pt-2 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs uppercase tracking-wider text-[#F59E0B] font-bold">5. Service Offerings & Pricing (SAR)</h3>
+            <p class="text-[10px] text-slate-400">Specify available services, durations, and prices</p>
+          </div>
+          <button type="button" id="add-service-btn" class="px-3 py-1.5 bg-slate-800 hover:bg-[#F59E0B] hover:text-slate-950 text-white font-bold text-xs rounded-xl transition">
+            + Add Service
+          </button>
+        </div>
+
+        <div id="services-list-container" class="space-y-3">
+          <!-- Rendered dynamically by register.js -->
+        </div>
+      </div>
+
+      <!-- Section 6: Subscription Plan Selection -->
+      <div class="space-y-4 pt-2 border-t border-slate-800">
+        <h3 class="text-xs uppercase tracking-wider text-[#F59E0B] font-bold">6. Select Subscription Plan</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          <label class="plan-card cursor-pointer p-4 rounded-2xl border border-[#F59E0B] bg-[#F59E0B]/10 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <input type="radio" name="subscriptionPlan" value="MONTHLY" checked class="text-[#F59E0B] focus:ring-[#F59E0B]" />
+              <div>
+                <span class="block font-bold text-white text-sm">Monthly Plan</span>
+                <span class="text-xs text-slate-400">Cancel anytime</span>
+              </div>
+            </div>
+            <span class="text-base font-extrabold text-[#F59E0B]">20 SAR<span class="text-[10px] text-slate-400 font-normal">/mo</span></span>
+          </label>
+
+          <label class="plan-card cursor-pointer p-4 rounded-2xl border border-slate-800 bg-slate-900/60 hover:border-[#F59E0B]/50 transition flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <input type="radio" name="subscriptionPlan" value="YEARLY" class="text-[#F59E0B] focus:ring-[#F59E0B]" />
+              <div>
+                <span class="block font-bold text-white text-sm">Yearly Plan</span>
+                <span class="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full">Save 40 SAR</span>
+              </div>
+            </div>
+            <span class="text-base font-extrabold text-[#F59E0B]">200 SAR<span class="text-[10px] text-slate-400 font-normal">/yr</span></span>
+          </label>
+
+        </div>
+      </div>
+
+      <!-- Section 7: Payment Provider Checkout -->
+      <div class="space-y-4 pt-2 border-t border-slate-800">
+        <h3 class="text-xs uppercase tracking-wider text-[#F59E0B] font-bold">7. Payment Checkout (Moyasar Integration)</h3>
+        <div class="grid grid-cols-3 gap-3">
+          <button type="button" class="pay-method-btn py-3 px-4 rounded-xl border border-[#F59E0B] bg-[#F59E0B]/10 text-white font-bold text-xs text-center">
+            💳 Mada
+          </button>
+          <button type="button" class="pay-method-btn py-3 px-4 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 font-bold text-xs text-center hover:border-slate-700">
+            💳 Card
+          </button>
+          <button type="button" class="pay-method-btn py-3 px-4 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 font-bold text-xs text-center hover:border-slate-700">
+            📱 STC Pay
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-3.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-extrabold text-sm rounded-xl transition shadow-xl shadow-[#F59E0B]/20">
+        Complete Registration & Pay via Moyasar
+      </button>
+
+    </form>
+  </main>
+
+  <!-- Success Modal -->
+  <div id="success-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg space-y-4 text-center shadow-2xl">
+      <div class="w-16 h-16 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-2xl font-bold">
+        ✓
+      </div>
+      <h3 class="text-2xl font-bold text-white">Payment Approved & Shop Activated!</h3>
+      <p class="text-xs text-slate-400">Webhook verified signature. Shop status set to ACTIVE.</p>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-left space-y-2 text-xs">
+        <p class="text-slate-400">Generated Public Booking URL:</p>
+        <a id="public-link" href="#" target="_blank" class="block font-mono text-[#F59E0B] font-bold underline break-all"></a>
+      </div>
+
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <a id="booking-btn" href="#" class="px-5 py-2.5 bg-[#F59E0B] text-slate-950 font-bold text-xs rounded-xl hover:bg-[#D97706]">
+          Visit Customer Booking Page
+        </a>
+        <a href="./dashboard/index.html" class="px-5 py-2.5 bg-slate-800 text-white font-bold text-xs rounded-xl hover:bg-slate-700">
+          Open Shop Owner Schedule
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/js/register.js"></script>
+</body>
+</html>

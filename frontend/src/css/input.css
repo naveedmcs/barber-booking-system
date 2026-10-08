@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950;
+  }
+}
+
+@layer components {
+  /* Glassmorphism card utilities */
+  .glass-card {
+    @apply backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl shadow-2xl;
+  }
+
+  .glass-card-hover {
+    @apply glass-card hover:border-[#F59E0B]/50 transition-all duration-300 hover:shadow-lg hover:shadow-[#F59E0B]/10;
+  }
+
+  /* Luxury Gold Buttons */
+  .btn-gold {
+    @apply bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-bold px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-[#F59E0B]/20 active:scale-95;
+  }
+
+  .btn-outline-gold {
+    @apply border border-[#F59E0B]/30 text-[#F59E0B] hover:bg-[#F59E0B] hover:text-slate-950 font-semibold px-4 py-2 rounded-xl transition-all duration-200 active:scale-95;
+  }
+
+  /* Status Badges */
+  .badge-available {
+    @apply px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+  }
+
+  .badge-hold {
+    @apply px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse;
+  }
+
+  .badge-confirmed {
+    @apply px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20;
+  }
+
+  /* Custom Animated Countdown Bar */
+  .countdown-bar {
+    @apply h-1.5 bg-[#F59E0B] rounded-full transition-all duration-1000 ease-linear;
+  }
+}

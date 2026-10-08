@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salon & Barber Booking SaaS | Portal Directory</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
+            luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="./src/css/output.css" />
+</head>
+
+<body
+  class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 relative overflow-x-hidden p-6 flex flex-col justify-between">
+
+  <!-- Background Glow -->
+  <div
+    class="fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-gradient-to-b from-[#F59E0B]/10 via-[#F59E0B]/5 to-transparent blur-3xl pointer-events-none -z-10">
+  </div>
+
+  <div class="max-w-5xl mx-auto w-full pt-8 space-y-10">
+
+    <!-- Header -->
+    <div class="text-center space-y-3">
+      <span
+        class="text-xs uppercase tracking-widest text-[#F59E0B] font-extrabold bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-3 py-1 rounded-full inline-block">
+        Saudi Arabia & GCC Booking System
+      </span>
+      <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        Salon/Barber Booking System
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+        Multi-tenant platform featuring customer salon directory, 5-minute slot locking, Moyasar payment auto-approval,
+        and WebSocket live schedules.
+      </p>
+    </div>
+
+    <!-- Portal Directory Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- Card 1: Salons Directory (DEDICATED PAGE) -->
+      <a href="./salons.html"
+        class="group backdrop-blur-md bg-white/5 border border-[#F59E0B]/30 rounded-2xl p-6 hover:border-[#F59E0B] transition-all duration-300 hover:shadow-2xl hover:shadow-[#F59E0B]/20 flex flex-col justify-between space-y-4 relative overflow-hidden">
+        <div
+          class="absolute top-0 right-0 bg-[#F59E0B] text-slate-950 text-[9px] font-extrabold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+          Explore Directory
+        </div>
+        <div>
+          <div
+            class="w-11 h-11 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl flex items-center justify-center text-[#F59E0B] text-xl font-bold mb-3">
+            💈
+          </div>
+          <h2 class="text-lg font-extrabold text-white group-hover:text-[#F59E0B] transition">Salons & Barber Directory
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Browse all registered barber shops, filter by city (Riyadh, Jeddah,
+            Dammam), preview photos, team barbers, and select a shop to book.</p>
+        </div>
+        <div
+          class="pt-2 text-xs font-bold text-[#F59E0B] flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          <span>Open Salons Directory</span> →
+        </div>
+      </a>
+
+      <!-- Card 2: Shop Onboarding -->
+      <a href="./register.html"
+        class="group backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#F59E0B] transition-all duration-300 hover:shadow-xl hover:shadow-[#F59E0B]/10 flex flex-col justify-between space-y-4">
+        <div>
+          <div
+            class="w-11 h-11 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-400 text-xl font-bold mb-3">
+            🏪
+          </div>
+          <h2 class="text-lg font-extrabold text-white group-hover:text-[#F59E0B] transition">Shop Onboarding &
+            Registration</h2>
+          <p class="text-xs text-slate-400 mt-1">Self-registration portal for shop owners with photo upload &
+            auto-compress, team barbers setup, services, and Moyasar payment gateway.</p>
+        </div>
+        <div
+          class="pt-2 text-xs font-bold text-[#F59E0B] flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          <span>Register Your Shop</span> →
+        </div>
+      </a>
+
+      <!-- Card 3: Customer Booking -->
+      <a href="./book.html"
+        class="group backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#F59E0B] transition-all duration-300 hover:shadow-xl hover:shadow-[#F59E0B]/10 flex flex-col justify-between space-y-4">
+        <div>
+          <div
+            class="w-11 h-11 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 text-xl font-bold mb-3">
+            📅
+          </div>
+          <h2 class="text-lg font-extrabold text-white group-hover:text-[#F59E0B] transition">Customer Appointment
+            Booking</h2>
+          <p class="text-xs text-slate-400 mt-1">5-step appointment stepper flow (Barber -> Service -> Slot -> Customer
+            -> Confirmation) with 5-minute hold timer & .ics calendar download.</p>
+        </div>
+        <div
+          class="pt-2 text-xs font-bold text-[#F59E0B] flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          <span>Booking Stepper Flow</span> →
+        </div>
+      </a>
+
+      <!-- Card 4: Shop Owner Dashboard -->
+      <a href="./dashboard/index.html"
+        class="group backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#F59E0B] transition-all duration-300 hover:shadow-xl hover:shadow-[#F59E0B]/10 flex flex-col justify-between space-y-4">
+        <div>
+          <div
+            class="w-11 h-11 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 text-xl font-bold mb-3">
+            ✂️
+          </div>
+          <h2 class="text-lg font-extrabold text-white group-hover:text-[#F59E0B] transition">Shop Owner Schedule Board
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Live timetable grid broken down by barbers, STOMP WebSocket live
+            updates (`/topic/shop/1/slots`), and manual walk-in reservation modal.</p>
+        </div>
+        <div
+          class="pt-2 text-xs font-bold text-[#F59E0B] flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          <span>Shop Owner Dashboard</span> →
+        </div>
+      </a>
+
+      <!-- Card 5: Super Admin Panel -->
+      <a href="./dashboard/admin.html"
+        class="group backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#F59E0B] transition-all duration-300 hover:shadow-xl hover:shadow-[#F59E0B]/10 flex flex-col justify-between space-y-4">
+        <div>
+          <div
+            class="w-11 h-11 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center text-purple-400 text-xl font-bold mb-3">
+            🛡️
+          </div>
+          <h2 class="text-lg font-extrabold text-white group-hover:text-[#F59E0B] transition">Super Admin Control Panel
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Platform overview metrics, shop manual status override toggles (Approve
+            / Suspend / Reactivate), and system audit log CSV exporter.</p>
+        </div>
+        <div
+          class="pt-2 text-xs font-bold text-[#F59E0B] flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          <span>Super Admin Control</span> →
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-xs text-slate-500 border-t border-slate-800/60 mt-12">
+    Salon & Barber Booking SaaS • Built for Saudi Arabia & GCC Market
+  </footer>
+</body>
+
+</html>
