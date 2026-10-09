@@ -86,6 +86,9 @@ public class PaymentWebhookController {
             // Auto-Approve Shop & Generate Final Slug
             String baseSlug = shopService.generateSlug(shop.getName());
             String finalSlug = baseSlug;
+            if (shopRepository.existsBySlug(finalSlug) && !finalSlug.equals(shop.getSlug())) {
+                finalSlug = baseSlug + "-" + shop.getId();
+            }
 
             shop.setStatus(ShopStatus.ACTIVE);
             shop.setSlug(finalSlug);

@@ -52,6 +52,6 @@ wait_for_health "barber_redis"
 
 echo "=========================================="
 echo " Infrastructure Started Successfully!     "
-echo " MySQL: port 3306 (database: barber_saas) "
+echo " MySQL: port 3307 (database: barber_saas) "
 echo " Redis: port 6379                        "
 echo "=========================================="

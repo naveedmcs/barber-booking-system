@@ -19,7 +19,7 @@ REG_RESPONSE=$(curl -s -X POST "${BASE_URL}/shops/register" \
     "ownerEmail": "owner-'$(date +%s)'@testbarber.sa",
     "ownerPassword": "SecurePassword123!",
     "shopName": "Golden Scissors E2E Test",
-    "phone": "+9665'$(shuf -i 10000001-99999999 -n 1 2>/dev/null || echo "01234567")'",
+    "phone": "05'$((10000000 + RANDOM % 89999999))'",
     "region": "Riyadh Region",
     "district": "Olaya",
     "city": "Riyadh",
@@ -61,12 +61,15 @@ echo "[3/6] Acquiring 5-minute slot hold via POST /api/slots/hold..."
 SLOT_START="2026-10-15T14:00:00"
 SLOT_END="2026-10-15T14:30:00"
 
+BARBER_ID=$(curl -s "${BASE_URL}/shops/${SHOP_ID}/barbers" | jq -r '.[0].id // 1')
+SERVICE_ID=$(curl -s "${BASE_URL}/shops/${SHOP_ID}/services" | jq -r '.[0].id // 1')
+
 HOLD_RESP=$(curl -s -X POST "${BASE_URL}/slots/hold" \
   -H "Content-Type: application/json" \
   -d '{
     "shopId": '"$SHOP_ID"',
-    "barberId": 1,
-    "serviceId": 1,
+    "barberId": '"$BARBER_ID"',
+    "serviceId": '"$SERVICE_ID"',
     "customerId": 1,
     "slotStart": "'"$SLOT_START"'",
     "slotEnd": "'"$SLOT_END"'"
@@ -84,8 +87,8 @@ DUP_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${BASE_URL}/slot
   -H "Content-Type: application/json" \
   -d '{
     "shopId": '"$SHOP_ID"',
-    "barberId": 1,
-    "serviceId": 1,
+    "barberId": '"$BARBER_ID"',
+    "serviceId": '"$SERVICE_ID"',
     "customerId": 2,
     "slotStart": "'"$SLOT_START"'",
     "slotEnd": "'"$SLOT_END"'"

@@ -79,9 +79,9 @@
             <input type="text" id="shopName" required placeholder="e.g. Golden Scissors Salon" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Saudi Phone Number (+966) *</label>
-            <input type="tel" id="phone" required placeholder="+966 501234567" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
-            <p id="phone-err" class="text-[10px] text-red-400 hidden mt-1">Invalid Saudi phone number format (+9665XXXXXXXX or 05XXXXXXXX)</p>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Saudi Phone Number (05XXXXXXXX) *</label>
+            <input type="tel" id="phone" required maxlength="10" placeholder="05XXXXXXXX" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B] font-mono tracking-wider" />
+            <p id="phone-err" class="text-[10px] text-red-400 hidden mt-1">⚠️ Invalid Saudi phone format. Enter a 10-digit number starting with 05 (e.g. 0512345678) without 00966 or country code.</p>
           </div>
         </div>
 

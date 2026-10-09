@@ -28,7 +28,7 @@ public class ShopRegistrationDto {
     private String shopName;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^(\\+9665|05)[0-9]{8}$", message = "Invalid Saudi phone number format")
+    @Pattern(regexp = "^05[0-9]{8}$", message = "Invalid Saudi phone number format. Must be 10 digits starting with 05")
     private String phone;
 
     @NotBlank(message = "Region is required")

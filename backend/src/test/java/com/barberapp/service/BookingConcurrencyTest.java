@@ -68,14 +68,14 @@ public class BookingConcurrencyTest {
                 .password("password")
                 .fullName("Shop Owner")
                 .role(UserRole.SHOP_OWNER)
-                .phone("+966500000001")
+                .phone("0500000001")
                 .build());
 
         Shop shop = shopRepository.save(Shop.builder()
                 .owner(owner)
                 .name("Golden Scissors")
                 .slug("golden-scissors")
-                .phone("+966500000002")
+                .phone("0500000002")
                 .region("Riyadh Region")
                 .district("Olaya")
                 .city("Riyadh")
@@ -102,7 +102,7 @@ public class BookingConcurrencyTest {
         Customer customer = customerRepository.save(Customer.builder()
                 .fullName("John Doe")
                 .email("john@example.com")
-                .phone("+966500000003")
+                .phone("0500000003")
                 .build());
         customerId = customer.getId();
 

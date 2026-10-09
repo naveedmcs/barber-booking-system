@@ -21,4 +21,14 @@ public class ShopController {
         Shop shop = shopService.registerShop(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(shop);
     }
+
+    @GetMapping("/{id}/barbers")
+    public ResponseEntity<java.util.List<com.barberapp.entity.Barber>> getBarbers(@PathVariable Long id) {
+        return ResponseEntity.ok(shopService.getBarbersByShop(id));
+    }
+
+    @GetMapping("/{id}/services")
+    public ResponseEntity<java.util.List<com.barberapp.entity.ServiceItem>> getServices(@PathVariable Long id) {
+        return ResponseEntity.ok(shopService.getServicesByShop(id));
+    }
 }

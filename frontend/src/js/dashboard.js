@@ -1,11 +1,30 @@
 import { Store } from "./store.js";
 
-const SAUDI_PHONE_REGEX = /^(\+9665|05)[0-9]{8}$/;
+const SAUDI_PHONE_REGEX = /^05[0-9]{8}$/;
 
 let CURRENT_SHOP = null;
 let SHOP_SLUG = "golden-scissors";
 
-const DEFAULT_TIMES = ["09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "01:30 PM", "02:00 PM", "02:30 PM", "03:00 PM", "05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM"];
+const SLOT_BUCKETS = {
+  morning: {
+    title: "Morning Slots",
+    sub: "09:00 AM - 11:59 AM",
+    icon: "☀️",
+    times: ["09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM"]
+  },
+  afternoon: {
+    title: "Afternoon Slots",
+    sub: "12:00 PM - 04:59 PM",
+    icon: "🌤️",
+    times: ["12:00 PM", "12:30 PM", "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM"]
+  },
+  evening: {
+    title: "Evening Slots",
+    sub: "05:00 PM - 09:00 PM",
+    icon: "🌙",
+    times: ["05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM", "08:00 PM"]
+  }
+};
 
 document.addEventListener("DOMContentLoaded", () => {
   Store.init();
@@ -17,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderTimetable();
   initWebSocket();
   initModalEvents();
+  checkAdminAuth();
 
   // Real-time synchronization subscription
   Store.subscribe((event) => {
@@ -27,8 +47,36 @@ document.addEventListener("DOMContentLoaded", () => {
       loadShopData();
     }
     renderTimetable();
+    checkAdminAuth();
   });
 });
+
+function checkAdminAuth() {
+  const container = document.getElementById("auth-status-banner");
+  if (!container) return;
+
+  const user = Store.getCurrentUser();
+  if (user && user.role === "SALON_ADMIN") {
+    container.innerHTML = `
+      <div class="bg-slate-900/90 border border-slate-800 text-slate-300 text-xs px-4 py-2.5 rounded-xl flex items-center justify-between mb-6 shadow-md">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>Authenticated Salon Admin Session: <strong class="text-white">${user.ownerName}</strong> (${user.shopName})</span>
+        </div>
+        <button id="auth-logout-btn" class="text-xs text-red-400 hover:text-red-300 font-semibold underline transition ml-4">
+          Logout Session
+        </button>
+      </div>
+    `;
+
+    document.getElementById("auth-logout-btn")?.addEventListener("click", () => {
+      Store.logout();
+      window.location.reload();
+    });
+  } else {
+    container.innerHTML = "";
+  }
+}
 
 function loadShopData() {
   CURRENT_SHOP = Store.getShopBySlug(SHOP_SLUG);
@@ -53,6 +101,7 @@ function populateBarberFilter() {
 function populateWalkinOptions() {
   const barberSelect = document.getElementById("walkin-barber");
   const serviceSelect = document.getElementById("walkin-service");
+  const timeSelect = document.getElementById("walkin-time");
   if (!CURRENT_SHOP) return;
 
   if (barberSelect && CURRENT_SHOP.barbers) {
@@ -62,9 +111,18 @@ function populateWalkinOptions() {
   if (serviceSelect && CURRENT_SHOP.services) {
     serviceSelect.innerHTML = CURRENT_SHOP.services.map((s) => `<option value="${s.name}">${s.name} (${s.price} SAR)</option>`).join("");
   }
+
+  if (timeSelect) {
+    const allTimes = [
+      ...SLOT_BUCKETS.morning.times,
+      ...SLOT_BUCKETS.afternoon.times,
+      ...SLOT_BUCKETS.evening.times
+    ];
+    timeSelect.innerHTML = allTimes.map((t) => `<option value="${t}">${t}</option>`).join("");
+  }
 }
 
-/* ---------------- TIMETABLE RENDER ---------------- */
+/* ---------------- SECTIONED TIMETABLE RENDER ---------------- */
 function renderTimetable() {
   const filter = document.getElementById("barber-filter")?.value || "ALL";
   const container = document.getElementById("timetable-container");
@@ -73,31 +131,6 @@ function renderTimetable() {
   const barbers = (CURRENT_SHOP.barbers || []).filter((b) => filter === "ALL" || b.name === filter);
   const bookings = Store.getBookings(SHOP_SLUG);
 
-  let gridSlots = [];
-
-  barbers.forEach((barber) => {
-    DEFAULT_TIMES.forEach((time) => {
-      const matchBooking = bookings.find((b) => b.barber === barber.name && b.time === time);
-      if (matchBooking) {
-        gridSlots.push({
-          id: matchBooking.id,
-          barber: barber.name,
-          time: matchBooking.time,
-          status: matchBooking.status || "CONFIRMED",
-          customer: matchBooking.customerName,
-          service: matchBooking.service
-        });
-      } else {
-        gridSlots.push({
-          id: `${barber.name}-${time}`,
-          barber: barber.name,
-          time: time,
-          status: "AVAILABLE"
-        });
-      }
-    });
-  });
-
   const statusBadges = {
     AVAILABLE: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     HOLD: "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse",
@@ -105,38 +138,102 @@ function renderTimetable() {
     BLOCKED: "bg-slate-800 text-slate-500 border-slate-700",
   };
 
-  container.innerHTML = gridSlots.map((slot) => `
-    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition flex flex-col justify-between shadow-xl">
-      <div class="flex items-center justify-between mb-3">
-        <span class="font-mono text-lg font-bold text-white">${slot.time}</span>
-        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusBadges[slot.status]}">
-          ${slot.status}
-        </span>
-      </div>
+  let sectionsHTML = "";
 
-      <div class="space-y-1 mb-4 text-xs">
-        <p class="font-semibold text-slate-300">Barber: <span class="text-white">${slot.barber}</span></p>
-        ${slot.customer ? `<p class="text-slate-400">Customer: <strong class="text-white">${slot.customer}</strong></p>` : ""}
-        ${slot.service ? `<p class="text-[#F59E0B]">Service: ${slot.service}</p>` : ""}
-      </div>
+  Object.keys(SLOT_BUCKETS).forEach((bucketKey) => {
+    const bucket = SLOT_BUCKETS[bucketKey];
+    let bucketSlots = [];
 
-      <div class="pt-3 border-t border-slate-800 flex items-center justify-end">
-        ${slot.status === "AVAILABLE" ? `
-          <button data-barber="${slot.barber}" data-time="${slot.time}" class="reserve-walkin-btn px-3 py-1.5 bg-[#F59E0B]/10 hover:bg-[#F59E0B] text-[#F59E0B] hover:text-slate-950 font-bold text-xs rounded-xl transition">
-            Reserve Walk-In
-          </button>
-        ` : `
-          <span class="text-[10px] text-slate-500 font-mono">Booked</span>
-        `}
-      </div>
-    </div>
-  `).join("");
+    barbers.forEach((barber) => {
+      bucket.times.forEach((time) => {
+        const matchBooking = bookings.find((b) => b.barber === barber.name && b.time === time);
+        if (matchBooking) {
+          bucketSlots.push({
+            id: matchBooking.id,
+            barber: barber.name,
+            time: matchBooking.time,
+            status: matchBooking.status || "CONFIRMED",
+            customer: matchBooking.customerName,
+            service: matchBooking.service
+          });
+        } else {
+          bucketSlots.push({
+            id: `${barber.name}-${time}`,
+            barber: barber.name,
+            time: time,
+            status: "AVAILABLE"
+          });
+        }
+      });
+    });
+
+    if (bucketSlots.length > 0) {
+      sectionsHTML += `
+        <section class="space-y-4 w-full">
+          <!-- Section Heading Banner -->
+          <div class="flex items-center justify-between border-b-2 border-[#F59E0B]/30 pb-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">${bucket.icon}</span>
+              <div>
+                <h2 class="text-base font-extrabold uppercase tracking-widest text-[#F59E0B]">
+                  ${bucket.title}
+                </h2>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">${bucket.sub}</p>
+              </div>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
+              ${bucketSlots.length} Slots
+            </span>
+          </div>
+
+          <!-- Multi-Row Grid for Time Slot Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${bucketSlots.map((slot) => `
+              <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition flex flex-col justify-between shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="font-mono text-lg font-bold text-white">${slot.time}</span>
+                  <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusBadges[slot.status]}">
+                    ${slot.status}
+                  </span>
+                </div>
+
+                <div class="space-y-1 mb-4 text-xs">
+                  <p class="font-semibold text-slate-300">Barber: <span class="text-white">${slot.barber}</span></p>
+                  ${slot.customer ? `<p class="text-slate-400">Customer: <strong class="text-white">${slot.customer}</strong></p>` : ""}
+                  ${slot.service ? `<p class="text-[#F59E0B]">Service: ${slot.service}</p>` : ""}
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 flex items-center justify-end">
+                  ${slot.status === "AVAILABLE" ? `
+                    <button data-barber="${slot.barber}" data-time="${slot.time}" class="reserve-walkin-btn px-3 py-1.5 bg-[#F59E0B]/10 hover:bg-[#F59E0B] text-[#F59E0B] hover:text-slate-950 font-bold text-xs rounded-xl transition">
+                      Reserve Walk-In
+                    </button>
+                  ` : `
+                    <span class="text-[10px] text-slate-500 font-mono">Booked</span>
+                  `}
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+  });
+
+  container.innerHTML = sectionsHTML;
 
   // Attach event listener for walk-in buttons
   container.querySelectorAll(".reserve-walkin-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.getElementById("walkin-barber").value = btn.getAttribute("data-barber");
-      document.getElementById("walkin-time").value = btn.getAttribute("data-time");
+      const barberVal = btn.getAttribute("data-barber");
+      const timeVal = btn.getAttribute("data-time");
+      
+      const barberSelect = document.getElementById("walkin-barber");
+      const timeSelect = document.getElementById("walkin-time");
+      
+      if (barberSelect) barberSelect.value = barberVal;
+      if (timeSelect) timeSelect.value = timeVal;
+      
       openModal();
     });
   });
@@ -195,25 +292,47 @@ function initModalEvents() {
   const closeBtn = document.getElementById("close-walkin-modal");
   const cancelBtn = document.getElementById("cancel-walkin-btn");
   const form = document.getElementById("walkin-form");
+  const walkinPhone = document.getElementById("walkin-phone");
+  const phoneError = document.getElementById("phone-error");
 
   openBtn?.addEventListener("click", openModal);
   closeBtn?.addEventListener("click", closeModal);
   cancelBtn?.addEventListener("click", closeModal);
 
+  walkinPhone?.addEventListener("input", (e) => {
+    let val = e.target.value.replace(/\s+/g, "");
+    if (val.startsWith("+966")) val = "0" + val.slice(4);
+    else if (val.startsWith("00966")) val = "0" + val.slice(5);
+    else if (val.startsWith("966") && val.length > 9) val = "0" + val.slice(3);
+    e.target.value = val;
+    phoneError?.classList.add("hidden");
+  });
+
   form?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const name = document.getElementById("walkin-name").value.trim();
-    const phone = document.getElementById("walkin-phone").value.trim();
-    const barber = document.getElementById("walkin-barber").value;
-    const time = document.getElementById("walkin-time").value;
-    const service = document.getElementById("walkin-service").value;
-    const phoneError = document.getElementById("phone-error");
+    const nameEl = document.getElementById("walkin-name");
+    const phoneEl = document.getElementById("walkin-phone");
+    const barberEl = document.getElementById("walkin-barber");
+    const timeEl = document.getElementById("walkin-time");
+    const serviceEl = document.getElementById("walkin-service");
+
+    const name = nameEl ? nameEl.value.trim() : "";
+    const phone = phoneEl ? phoneEl.value.trim() : "";
+    const barber = barberEl ? barberEl.value : "";
+    const time = timeEl ? timeEl.value : "";
+    const service = serviceEl ? serviceEl.value : "";
 
     if (!SAUDI_PHONE_REGEX.test(phone)) {
-      phoneError.classList.remove("hidden");
+      phoneError?.classList.remove("hidden");
       return;
     }
-    phoneError.classList.add("hidden");
+    phoneError?.classList.add("hidden");
+
+    let price = 50;
+    if (CURRENT_SHOP && CURRENT_SHOP.services) {
+      const matchSvc = CURRENT_SHOP.services.find((s) => s.name === service || service.includes(s.name));
+      if (matchSvc) price = matchSvc.price;
+    }
 
     // Add new walk-in booking to Store
     Store.addBooking({
@@ -224,12 +343,12 @@ function initModalEvents() {
       customerName: name + " (Walk-In)",
       customerPhone: phone,
       service,
-      price: 50
+      price
     });
 
     renderTimetable();
     closeModal();
-    showToast(`Walk-in confirmed for ${name}`);
+    showToast(`Walk-in reserved for ${name} at ${time}`);
   });
 }
 

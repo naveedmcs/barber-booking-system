@@ -12,7 +12,7 @@ const STATE = {
   selectedService: null,
   selectedDate: new Date().toISOString().split("T")[0],
   selectedSlot: null,
-  customer: { fullName: "", phone: "", email: "" },
+  customer: { fullName: "", phone: "" },
   holdBookingId: null,
   timerSeconds: 300,
   timerInterval: null,
@@ -283,17 +283,14 @@ function renderStep4(container) {
       <form id="customer-form" class="space-y-4 bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
-          <input type="text" id="cust-name" required value="${STATE.customer.fullName}" placeholder="e.g. Mohammed Al-Gamdi" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          <input type="text" id="cust-name" required value="${STATE.customer.fullName}" placeholder="e.g. Mohammed Al-Ghamdi" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Saudi Phone (+966)</label>
-          <input type="tel" id="cust-phone" required value="${STATE.customer.phone}" placeholder="+966 5XXXXXXXX" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
-          <input type="email" id="cust-email" required value="${STATE.customer.email}" placeholder="name@domain.com" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          <label class="block text-xs font-medium text-slate-300 mb-1">Saudi Mobile Number (05XXXXXXXX)</label>
+          <input type="tel" id="cust-phone" required maxlength="10" value="${STATE.customer.phone}" placeholder="05XXXXXXXX" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B] font-mono tracking-wider" />
+          <p class="text-[10px] text-slate-400 mt-1">Format: 10-digit Saudi mobile starting with 05 (without 00966 or +966)</p>
+          <p id="phone-error" class="hidden text-[11px] text-red-400 font-semibold mt-1">⚠️ Invalid Saudi phone format. Please enter a 10-digit number starting with 05 (e.g. 0512345678) without 00966 or country code.</p>
         </div>
 
         <button type="submit" class="w-full py-3 bg-[#F59E0B] text-slate-950 font-bold text-xs rounded-xl hover:bg-[#D97706] transition shadow-lg shadow-[#F59E0B]/20">
@@ -303,11 +300,35 @@ function renderStep4(container) {
     </div>
   `;
 
+  const phoneInput = document.getElementById("cust-phone");
+  const phoneError = document.getElementById("phone-error");
+
+  // Real-time auto-cleaning: strip country codes if typed or pasted
+  phoneInput.addEventListener("input", (e) => {
+    let val = e.target.value.replace(/\s+/g, "");
+    if (val.startsWith("+966")) val = "0" + val.slice(4);
+    else if (val.startsWith("00966")) val = "0" + val.slice(5);
+    else if (val.startsWith("966") && val.length > 9) val = "0" + val.slice(3);
+
+    e.target.value = val;
+    phoneError.classList.add("hidden");
+  });
+
   document.getElementById("customer-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    STATE.customer.fullName = document.getElementById("cust-name").value.trim();
-    STATE.customer.phone = document.getElementById("cust-phone").value.trim();
-    STATE.customer.email = document.getElementById("cust-email").value.trim();
+    const name = document.getElementById("cust-name").value.trim();
+    const phone = document.getElementById("cust-phone").value.trim();
+
+    // Strict Saudi Phone Regex (without 00966 / +966 / 966)
+    const SAUDI_PHONE_REGEX = /^05[0-9]{8}$/;
+    if (!SAUDI_PHONE_REGEX.test(phone)) {
+      phoneError.classList.remove("hidden");
+      return;
+    }
+    phoneError.classList.add("hidden");
+
+    STATE.customer.fullName = name;
+    STATE.customer.phone = phone;
 
     // Persist real booking to Store & sync real-time
     Store.addBooking({
@@ -317,7 +338,6 @@ function renderStep4(container) {
       date: STATE.selectedDate,
       customerName: STATE.customer.fullName,
       customerPhone: STATE.customer.phone,
-      customerEmail: STATE.customer.email,
       service: STATE.selectedService.name,
       price: STATE.selectedService.price
     });
@@ -346,6 +366,14 @@ function renderStep5(container) {
         <div class="flex justify-between text-xs py-1 border-b border-slate-800">
           <span class="text-slate-400">Shop</span>
           <span class="font-bold text-white">${STATE.shop?.name}</span>
+        </div>
+        <div class="flex justify-between text-xs py-1 border-b border-slate-800">
+          <span class="text-slate-400">Customer Name</span>
+          <span class="font-bold text-white">${STATE.customer.fullName}</span>
+        </div>
+        <div class="flex justify-between text-xs py-1 border-b border-slate-800">
+          <span class="text-slate-400">Saudi Phone</span>
+          <span class="font-bold text-white font-mono">${STATE.customer.phone}</span>
         </div>
         <div class="flex justify-between text-xs py-1 border-b border-slate-800">
           <span class="text-slate-400">Barber</span>

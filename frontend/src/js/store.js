@@ -19,7 +19,7 @@ const DEFAULT_SHOPS = [
     name: "Golden Scissors Salon",
     owner: "Tariq Al-Mansoor",
     ownerEmail: "owner@goldenscissors.sa",
-    phone: "+966501234567",
+    phone: "0501234567",
     city: "Riyadh",
     district: "Olaya",
     region: "Riyadh Region",
@@ -46,7 +46,7 @@ const DEFAULT_SHOPS = [
     name: "Royal Barber Lounge",
     owner: "Fahad Mansoor",
     ownerEmail: "fahad@royallounge.sa",
-    phone: "+966509876543",
+    phone: "0509876543",
     city: "Jeddah",
     district: "Al-Hamra",
     region: "Makkah Region",
@@ -68,8 +68,8 @@ const DEFAULT_SHOPS = [
 ];
 
 const DEFAULT_BOOKINGS = [
-  { id: 1, shopSlug: "golden-scissors", barber: "Master Barber Ahmed", time: "09:00 AM", date: "2026-09-18", customerName: "Fahad Al-Harbi", customerPhone: "+966501112233", service: "Royal Haircut & Hot Towel", price: 60, status: "CONFIRMED" },
-  { id: 2, shopSlug: "golden-scissors", barber: "Sami Al-Otaibi", time: "09:30 AM", date: "2026-09-18", customerName: "Omar Saeed", customerPhone: "+966504445566", service: "Beard Sculpting & Razor Line", price: 40, status: "CONFIRMED" }
+  { id: 1, shopSlug: "golden-scissors", barber: "Master Barber Ahmed", time: "09:00 AM", date: "2026-09-18", customerName: "Fahad Al-Harbi", customerPhone: "0501112233", service: "Royal Haircut & Hot Towel", price: 60, status: "CONFIRMED" },
+  { id: 2, shopSlug: "golden-scissors", barber: "Sami Al-Otaibi", time: "09:30 AM", date: "2026-09-18", customerName: "Omar Saeed", customerPhone: "0504445566", service: "Beard Sculpting & Razor Line", price: 40, status: "CONFIRMED" }
 ];
 
 const DEFAULT_AUDIT_LOGS = [
@@ -103,6 +103,54 @@ export const Store = {
   getShopBySlug(slug) {
     const shops = this.getShops();
     return shops.find((s) => s.slug === slug) || shops[0];
+  },
+
+  getCurrentUser() {
+    try {
+      return JSON.parse(localStorage.getItem("barber_saas_current_user"));
+    } catch {
+      return null;
+    }
+  },
+
+  setCurrentUser(user) {
+    if (user) {
+      localStorage.setItem("barber_saas_current_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("barber_saas_current_user");
+    }
+    this.notify("AUTH_CHANGED", user);
+  },
+
+  logout() {
+    localStorage.removeItem("barber_saas_current_user");
+    this.notify("AUTH_CHANGED", null);
+  },
+
+  loginSalonAdmin(emailOrPhone) {
+    const shops = this.getShops();
+    const clean = (emailOrPhone || "").trim();
+    const matchedShop = shops.find((s) => 
+      (s.ownerEmail && s.ownerEmail.toLowerCase() === clean.toLowerCase()) ||
+      (s.phone && s.phone === clean) ||
+      (s.slug && s.slug === clean) ||
+      (s.id && s.id === clean)
+    );
+
+    if (matchedShop) {
+      const sessionUser = {
+        role: "SALON_ADMIN",
+        shopId: matchedShop.id,
+        shopSlug: matchedShop.slug,
+        shopName: matchedShop.name,
+        ownerName: matchedShop.owner || "Salon Admin",
+        email: matchedShop.ownerEmail || "",
+        phone: matchedShop.phone || ""
+      };
+      this.setCurrentUser(sessionUser);
+      return { success: true, shop: matchedShop, user: sessionUser };
+    }
+    return { success: false, message: "No registered salon matched this email/phone." };
   },
 
   saveShop(shop) {

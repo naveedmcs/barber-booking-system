@@ -37,22 +37,35 @@
   <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Header -->
-  <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-    <div>
-      <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-bold text-white tracking-tight">Golden Scissors - Live Schedule</h1>
-        <span id="ws-badge" class="px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20">
-          <span id="ws-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span id="ws-text">Connecting...</span>
-        </span>
+  <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div class="flex items-center gap-3">
+      <a href="../salons.html" class="w-10 h-10 bg-slate-900 border border-slate-700 hover:border-[#F59E0B] text-slate-300 hover:text-white rounded-xl flex items-center justify-center text-sm font-bold transition" title="Back to Salons Directory">
+        ←
+      </a>
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold text-white tracking-tight">Golden Scissors - Live Schedule</h1>
+          <span id="ws-badge" class="px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <span id="ws-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span id="ws-text">Connecting...</span>
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">Real-time schedule monitoring, live slot sync, and walk-in reservation panel</p>
       </div>
-      <p class="text-xs text-slate-400 mt-1">Real-time schedule monitoring, live slot sync, and walk-in reservation panel</p>
     </div>
 
-    <button id="open-walkin-modal" class="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-bold text-xs rounded-xl transition shadow-lg shadow-[#F59E0B]/20 flex items-center gap-2">
-      <span>+ Add Walk-In Customer</span>
-    </button>
+    <div class="flex items-center gap-3">
+      <a href="../salons.html" class="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-[#F59E0B] text-slate-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+        <span>💈 Salons Directory</span>
+      </a>
+      <button id="open-walkin-modal" class="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-bold text-xs rounded-xl transition shadow-lg shadow-[#F59E0B]/20 flex items-center gap-2">
+        <span>+ Add Walk-In Customer</span>
+      </button>
+    </div>
   </header>
+
+  <!-- Auth Session Banner -->
+  <div id="auth-status-banner"></div>
 
   <!-- Controls / Filters -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
@@ -73,8 +86,8 @@
     </div>
   </div>
 
-  <!-- Timetable Grid Container -->
-  <div id="timetable-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <!-- Timetable Grid Container (Sectioned by Morning, Afternoon, Evening) -->
+  <div id="timetable-container" class="space-y-8 w-full">
     <!-- Rendered dynamically by dashboard.js -->
   </div>
 
@@ -93,9 +106,9 @@
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Saudi Phone Number (+966)</label>
-          <input type="tel" id="walkin-phone" required placeholder="+966 5XXXXXXXX" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F59E0B]" />
-          <p id="phone-error" class="text-[10px] text-red-400 hidden mt-1">Invalid Saudi phone number format (e.g. +966501234567 or 0501234567)</p>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Saudi Phone Number (05XXXXXXXX)</label>
+          <input type="tel" id="walkin-phone" required maxlength="10" placeholder="05XXXXXXXX" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F59E0B] font-mono tracking-wider" />
+          <p id="phone-error" class="text-[10px] text-red-400 hidden mt-1">⚠️ Invalid Saudi phone format. Enter a 10-digit number starting with 05 (e.g. 0512345678) without 00966 or country code.</p>
         </div>
 
         <div class="grid grid-cols-2 gap-3">

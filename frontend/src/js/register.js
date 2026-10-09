@@ -4,7 +4,7 @@
 
 import { Store } from "./store.js";
 
-const SAUDI_PHONE_REGEX = /^(\+9665|05)[0-9]{8}$/;
+const SAUDI_PHONE_REGEX = /^05[0-9]{8}$/;
 
 let UPLOADED_PHOTOS = [];
 let BARBERS = [
@@ -241,10 +241,14 @@ document.getElementById("add-service-btn")?.addEventListener("click", () => {
 function initFormSubmission() {
   const form = document.getElementById("onboarding-form");
   const phoneInput = document.getElementById("phone");
-  const phoneErr = document.getElementById("phone-err");
-  const modal = document.getElementById("success-modal");
-  const publicLink = document.getElementById("public-link");
-  const bookingBtn = document.getElementById("booking-btn");
+  phoneInput?.addEventListener("input", (e) => {
+    let val = e.target.value.replace(/\s+/g, "");
+    if (val.startsWith("+966")) val = "0" + val.slice(4);
+    else if (val.startsWith("00966")) val = "0" + val.slice(5);
+    else if (val.startsWith("966") && val.length > 9) val = "0" + val.slice(3);
+    e.target.value = val;
+    phoneErr.classList.add("hidden");
+  });
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();

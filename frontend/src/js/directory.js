@@ -8,15 +8,37 @@ document.addEventListener("DOMContentLoaded", () => {
   Store.init();
   renderDirectory();
   initDirectoryFilters();
+  initLoginModal();
+  updateAuthUI();
 
   // Listen to real-time shop registrations or status updates
   Store.subscribe(() => {
     renderDirectory();
+    updateAuthUI();
   });
 });
 
 let currentQuery = "";
 let currentCityFilter = "ALL";
+
+function updateAuthUI() {
+  const openLoginBtn = document.getElementById("open-login-modal-btn");
+  const user = Store.getCurrentUser();
+
+  if (openLoginBtn) {
+    if (user && user.role === "SALON_ADMIN") {
+      openLoginBtn.innerHTML = `<span>👤 Admin: ${user.shopName}</span>`;
+      openLoginBtn.className = "px-3.5 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs rounded-xl hover:bg-emerald-500/20 transition flex items-center gap-1.5";
+      openLoginBtn.onclick = () => {
+        window.location.href = `./dashboard/index.html?slug=${user.shopSlug}`;
+      };
+    } else {
+      openLoginBtn.innerHTML = `<span>🔐 Salon Admin Login</span>`;
+      openLoginBtn.className = "px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-[#F59E0B] text-slate-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5";
+      openLoginBtn.onclick = openLoginModal;
+    }
+  }
+}
 
 function renderDirectory() {
   const container = document.getElementById("shops-directory-grid");
@@ -24,6 +46,7 @@ function renderDirectory() {
   if (!container) return;
 
   const shops = Store.getShops();
+  populateQuickSelect(shops);
 
   const filtered = shops.filter((shop) => {
     const matchQuery =
@@ -88,6 +111,7 @@ function renderDirectory() {
           <div>
             <h3 class="text-lg font-bold text-white group-hover:text-[#F59E0B] transition line-clamp-1">${shop.name}</h3>
             <p class="text-xs text-slate-400 mt-1 line-clamp-1">${shop.fullAddress || `${shop.district || ""}, ${shop.city || ""}`}</p>
+            ${shop.owner ? `<p class="text-[11px] text-slate-500 mt-1">Owner: <span class="text-slate-300 font-medium">${shop.owner}</span></p>` : ""}
           </div>
 
           <!-- Feature Pills -->
@@ -103,9 +127,12 @@ function renderDirectory() {
             </div>
           </div>
 
-          <!-- Book Button -->
-          <div class="pt-3">
-            <a href="./book.html?slug=${shop.slug}" class="w-full py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-[#F59E0B]/10">
+          <!-- TWO BUTTONS: View Bookings & Book Appointment -->
+          <div class="pt-3 grid grid-cols-2 gap-2">
+            <a href="./dashboard/index.html?slug=${shop.slug}" class="py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700 hover:border-[#F59E0B] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition">
+              <span>📋 View Bookings</span>
+            </a>
+            <a href="./book.html?slug=${shop.slug}" class="py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-lg shadow-[#F59E0B]/10">
               <span>Book Appointment</span>
               <span>→</span>
             </a>
@@ -133,4 +160,59 @@ function initDirectoryFilters() {
       renderDirectory();
     });
   });
+}
+
+/* ---------------- SALON ADMIN LOGIN MODAL HANDLERS ---------------- */
+function populateQuickSelect(shops) {
+  const select = document.getElementById("quick-salon-select");
+  if (!select) return;
+  select.innerHTML = shops.map((s) => `
+    <option value="${s.slug}">${s.name} (${s.owner || "Owner"})</option>
+  `).join("");
+}
+
+function initLoginModal() {
+  const modal = document.getElementById("login-modal");
+  const closeBtn = document.getElementById("close-login-modal");
+  const quickBtn = document.getElementById("quick-login-btn");
+  const form = document.getElementById("admin-login-form");
+  const errMsg = document.getElementById("login-err-msg");
+
+  closeBtn?.addEventListener("click", closeLoginModal);
+
+  quickBtn?.addEventListener("click", () => {
+    const slug = document.getElementById("quick-salon-select")?.value;
+    if (slug) {
+      Store.loginSalonAdmin(slug);
+      window.location.href = `./dashboard/index.html?slug=${slug}`;
+    }
+  });
+
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = document.getElementById("login-email-phone")?.value.trim();
+    if (!input) return;
+
+    const res = Store.loginSalonAdmin(input);
+    if (res.success) {
+      errMsg?.classList.add("hidden");
+      closeLoginModal();
+      window.location.href = `./dashboard/index.html?slug=${res.shop.slug}`;
+    } else {
+      errMsg?.classList.remove("hidden");
+    }
+  });
+}
+
+function openLoginModal() {
+  const modal = document.getElementById("login-modal");
+  modal?.classList.remove("hidden");
+  modal?.classList.add("flex");
+}
+
+function closeLoginModal() {
+  const modal = document.getElementById("login-modal");
+  modal?.classList.add("hidden");
+  modal?.classList.remove("flex");
+  document.getElementById("login-err-msg")?.classList.add("hidden");
 }
