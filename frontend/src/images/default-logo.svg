@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <defs>
+    <radialGradient id="logoBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0B0F17" />
+    </radialGradient>
+    <linearGradient id="logoGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+  </defs>
+
+  <!-- Base Rounded Hexagon/Square -->
+  <rect x="4" y="4" width="152" height="152" rx="36" fill="url(#logoBg)" stroke="url(#logoGold)" stroke-width="3" />
+  <circle cx="80" cy="80" r="56" fill="none" stroke="url(#logoGold)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.4" />
+
+  <!-- Center Golden Shears & Crown Emblem -->
+  <g transform="translate(80, 78)">
+    <!-- Crown -->
+    <path d="M-18 -26 L-10 -16 L0 -28 L10 -16 L18 -26 L14 -10 L-14 -10 Z" fill="url(#logoGold)" />
+    <!-- Crossed Shears -->
+    <path d="M-22 -4 L22 26 M22 -4 L-22 26" stroke="url(#logoGold)" stroke-width="4.5" stroke-linecap="round" />
+    <circle cx="-22" cy="-4" r="6" fill="none" stroke="url(#logoGold)" stroke-width="3" />
+    <circle cx="22" cy="-4" r="6" fill="none" stroke="url(#logoGold)" stroke-width="3" />
+    <!-- Center Pivot Gem -->
+    <circle cx="0" cy="11" r="3.5" fill="#FFFFFF" />
+  </g>
+
+  <!-- Bottom Monogram Text -->
+  <text x="80" y="132" fill="#F59E0B" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" letter-spacing="3" text-anchor="middle">SALON</text>
+</svg>

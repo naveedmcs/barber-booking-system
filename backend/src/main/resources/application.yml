@@ -29,6 +29,13 @@ spring:
   jackson:
     serialization:
       FAIL_ON_EMPTY_BEANS: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 25MB
+
+media:
+  upload-dir: uploads
 
 payment:
   webhook:

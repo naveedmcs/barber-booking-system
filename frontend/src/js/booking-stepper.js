@@ -1,478 +1,1402 @@
 /**
- * Vanilla JS 5-Step Customer Booking Stepper
+ * Mobile-First Customer Booking Funnel & Calendar Integration Engine
+ * - Zero heavy icon/UI dependencies
+ * - High-contrast luxury SVG fallbacks for missing brand, cover banner, gallery, and avatars
+ * - 6-Step full visibility progress indicator (0: Salon, 1: Services, 2: Barber, 3: Slot, 4: Details, 5: Receipt)
+ * - Multi-service selection with live duration & price computation
+ * - "Any Available Barber" fast-track & staff phone privacy guard
+ * - Dynamic slot generation retrieved from salon operating hours in Salon Store
+ * - 14-day horizontal scrollable date strip & 48x48px touch targets
+ * - 5-minute concurrency hold timer with Redis/Store sync
+ * - Customer booking audit logs
+ * - Free zero-cost map routing (no paid Google Maps API)
+ * - Dual Android (Google Calendar) & iPhone (Apple Calendar .ics with -PT1H alarm) calendar export
+ * - Prominent cancellation advisory with salon/support contact
  */
 
 import { Store } from "./store.js";
 
+// ==========================================
+// 1. CONTEXTUAL ASSET RESOLUTION ENGINE
+// ==========================================
+export function getAssetBase() {
+  const isInsideSubfolder = window.location.pathname.includes("/book/") ||
+                            window.location.pathname.includes("/dashboard/") ||
+                            window.location.pathname.includes("/portal/");
+  return isInsideSubfolder ? ".." : ".";
+}
+
+export const FallbackAssets = {
+  getDefaultHero() {
+    return `${getAssetBase()}/src/images/default-hero.svg`;
+  },
+
+  getDefaultLogo() {
+    return `${getAssetBase()}/src/images/default-logo.svg`;
+  },
+
+  getDefaultAvatar() {
+    return `${getAssetBase()}/src/images/default-avatar.svg`;
+  },
+
+  getDefaultGallery() {
+    const base = getAssetBase();
+    return [
+      {
+        title: "Vintage Leather Stations",
+        subtitle: "Traditional Craftsmanship",
+        dataUrl: `${base}/src/images/gallery-1.svg`
+      },
+      {
+        title: "Royal Hot Towel & Steam",
+        subtitle: "Signature Scalp Treatment",
+        dataUrl: `${base}/src/images/gallery-2.svg`
+      },
+      {
+        title: "Precision Grooming Tools",
+        subtitle: "Sharp Line-up & Botanical Oils",
+        dataUrl: `${base}/src/images/gallery-3.svg`
+      }
+    ];
+  },
+
+  getStaffAvatar(barberName = "Barber") {
+    return this.getDefaultAvatar();
+  }
+};
+
+// ==========================================
+// 2. STATE MANAGEMENT
+// ==========================================
+const DEFAULT_OPERATING_HOURS = {
+  sunday: { open: "09:00", close: "22:00", closed: false },
+  monday: { open: "09:00", close: "22:00", closed: false },
+  tuesday: { open: "09:00", close: "22:00", closed: false },
+  wednesday: { open: "09:00", close: "22:00", closed: false },
+  thursday: { open: "09:00", close: "23:00", closed: false },
+  friday: { open: "13:00", close: "23:00", closed: false },
+  saturday: { open: "09:00", close: "22:00", closed: false }
+};
+
 const STATE = {
-  step: 1,
+  step: 0, // 0: Landing/Hero, 1: Services, 2: Barbers, 3: Date & Slots, 4: Customer Details, 5: Confirmation
   shopSlug: "golden-scissors",
   shop: null,
-  selectedBarber: null,
-  selectedService: null,
+  selectedServices: [], // Multi-service selection array of Service objects
+  selectedBarber: null, // Specific Barber object OR { id: "any", name: "Any Available Barber" }
   selectedDate: new Date().toISOString().split("T")[0],
   selectedSlot: null,
-  customer: { fullName: "", phone: "" },
-  holdBookingId: null,
+  customer: {
+    fullName: "",
+    phone: "",
+    notes: ""
+  },
+  bookingRef: null,
+  confirmedBooking: null,
   timerSeconds: 300,
-  timerInterval: null,
+  timerInterval: null
 };
 
 let BARBERS = [];
 let SERVICES = [];
 
-const DEFAULT_SLOTS = {
-  morning: [
-    { time: "09:00 AM", available: true },
-    { time: "09:30 AM", available: true },
-    { time: "10:00 AM", available: true },
-    { time: "10:30 AM", available: true },
-  ],
-  afternoon: [
-    { time: "01:30 PM", available: true },
-    { time: "02:00 PM", available: true },
-    { time: "02:30 PM", available: true },
-    { time: "03:00 PM", available: true },
-  ],
-  evening: [
-    { time: "05:00 PM", available: true },
-    { time: "05:30 PM", available: true },
-    { time: "06:00 PM", available: true },
-    { time: "06:30 PM", available: true },
-  ]
-};
-
+// ==========================================
+// 3. INITIALIZATION & DATA FETCHING
+// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
   Store.init();
 
+  // Extract slug from URL query (?slug=...) or pathname (/book/:slug)
   const urlParams = new URLSearchParams(window.location.search);
-  STATE.shopSlug = urlParams.get("slug") || "golden-scissors";
-
-  STATE.shop = Store.getShopBySlug(STATE.shopSlug);
-  if (STATE.shop) {
-    const titleEl = document.getElementById("shop-title");
-    if (titleEl) titleEl.innerText = STATE.shop.name.toUpperCase();
-
-    BARBERS = STATE.shop.barbers && STATE.shop.barbers.length > 0 ? STATE.shop.barbers : [
-      { id: 1, name: "Master Barber Ahmed", rating: 4.9, avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" },
-      { id: 2, name: "Sami Al-Otaibi", rating: 4.8, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }
-    ];
-
-    SERVICES = STATE.shop.services && STATE.shop.services.length > 0 ? STATE.shop.services : [
-      { id: 101, name: "Royal Haircut & Hot Towel", duration: 30, price: 60, desc: "Precision haircut, scalp treatment, and hot towel finish" },
-      { id: 102, name: "Beard Sculpting & Razor Line", duration: 25, price: 40, desc: "Beard trim, steam razor line-up, and organic oil treatment" }
-    ];
+  let slug = urlParams.get("slug") || urlParams.get("id");
+  if (!slug) {
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    const bookIdx = segments.indexOf("book");
+    if (bookIdx !== -1 && segments[bookIdx + 1]) {
+      slug = segments[bookIdx + 1].replace(/\.html$/, "");
+    }
   }
 
-  renderStep();
+  STATE.shopSlug = slug || "golden-scissors";
+  STATE.shop = Store.getShopBySlug(STATE.shopSlug);
+
+  const stepParam = urlParams.get("step");
+  if (stepParam !== null && !isNaN(parseInt(stepParam))) {
+    STATE.step = Math.max(0, Math.min(5, parseInt(stepParam)));
+  }
+
+  if (!STATE.shop) {
+    const allShops = Store.getShops();
+    STATE.shop = allShops[0] || {
+      name: "Golden Scissors Salon",
+      slug: "golden-scissors",
+      city: "Riyadh",
+      phone: "0501234567",
+      fullAddress: "King Fahd Road, Olaya, Riyadh"
+    };
+  }
+
+  // Populate Barbers & Services from Salon Store
+  BARBERS = (STATE.shop.barbers && STATE.shop.barbers.length > 0)
+    ? STATE.shop.barbers
+    : [
+        { id: 1, name: "Master Barber Ahmed", title: "Master Barber", rating: 4.9, avatar: "" },
+        { id: 2, name: "Sami Al-Otaibi", title: "Senior Stylist", rating: 4.8, avatar: "" },
+        { id: 3, name: "Tariq Mansoor", title: "Grooming Specialist", rating: 4.95, avatar: "" }
+      ];
+
+  SERVICES = (STATE.shop.services && STATE.shop.services.length > 0)
+    ? STATE.shop.services
+    : [
+        { id: 101, name: "Royal Haircut & Hot Towel", category: "Haircut", duration: 30, buffer: 5, price: 60, desc: "Precision haircut, scalp treatment, and hot towel finish" },
+        { id: 102, name: "Beard Sculpting & Razor Line", category: "Beard Care", duration: 25, buffer: 5, price: 40, desc: "Beard trim, steam razor line-up, and organic oil treatment" },
+        { id: 103, name: "VIP Full Grooming Package", category: "VIP Packages", duration: 60, buffer: 10, price: 110, desc: "Haircut, beard sculpting, facial steam scrub, and head massage" },
+        { id: 104, name: "Charcoal Purifying Facial", category: "Skin & Spa", duration: 20, buffer: 5, price: 35, desc: "Deep pore charcoal mask, blackhead removal and refreshing mist" }
+      ];
+
+  STATE.selectedDate = getTodayFormatted();
+
+  // Wire interactive step navigation in header
+  wireStepNavClicks();
+
+  renderApp();
 });
 
-function renderStep() {
-  updateNavHeader();
-  const container = document.getElementById("step-content");
-
-  if (STATE.step === 1) renderStep1(container);
-  else if (STATE.step === 2) renderStep2(container);
-  else if (STATE.step === 3) renderStep3(container);
-  else if (STATE.step === 4) renderStep4(container);
-  else if (STATE.step === 5) renderStep5(container);
-}
-
-function updateNavHeader() {
-  document.querySelectorAll(".step-nav-item").forEach((item) => {
-    const s = parseInt(item.getAttribute("data-step"));
-    const icon = item.querySelector(".step-icon");
-    const label = item.querySelector("span");
-
-    if (s === STATE.step) {
-      icon.className = "step-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-[#F59E0B] text-slate-950 ring-4 ring-[#F59E0B]/20";
-      label.className = "text-xs font-semibold text-white";
-    } else if (s < STATE.step) {
-      icon.className = "step-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-emerald-500 text-white";
-      icon.innerHTML = "✓";
-      label.className = "text-xs font-semibold text-slate-300";
-    } else {
-      icon.className = "step-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-slate-800 text-slate-400";
-      icon.innerHTML = s;
-      label.className = "text-xs font-semibold text-slate-400";
-    }
-  });
-}
-
-/* ---------------- STEP 1: BARBERS ---------------- */
-function renderStep1(container) {
-  const shopPhotos = STATE.shop?.photos || [];
-
-  container.innerHTML = `
-    <div class="mb-6">
-      <h2 class="text-xl font-bold text-white mb-1">Select Your Master Barber</h2>
-      <p class="text-xs text-slate-400">Shop Location: ${STATE.shop?.fullAddress || STATE.shop?.city || "Saudi Arabia"}</p>
-    </div>
-
-    ${shopPhotos.length > 0 ? `
-      <div class="mb-6">
-        <p class="text-xs font-bold text-[#F59E0B] uppercase tracking-wider mb-2">Salon Gallery & Ambience</p>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          ${shopPhotos.slice(0, 4).map((p) => `
-            <img src="${p.dataUrl}" alt="Salon photo" class="w-full h-24 object-cover rounded-xl border border-slate-800" />
-          `).join("")}
-        </div>
-      </div>
-    ` : ""}
-
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      ${BARBERS.map((b) => `
-        <div data-id="${b.id}" class="barber-card group cursor-pointer p-5 rounded-2xl border transition-all duration-300 flex flex-col items-center text-center space-y-3 ${
-          STATE.selectedBarber?.id === b.id
-            ? "border-[#F59E0B] bg-[#F59E0B]/10 ring-2 ring-[#F59E0B]/30"
-            : "border-slate-800 bg-slate-900/60 hover:border-[#F59E0B]/50"
-        }">
-          <img src="${b.avatar || b.photoUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}" alt="${b.name}" class="w-20 h-20 rounded-full object-cover border-2 border-[#F59E0B]/40 group-hover:scale-105 transition-transform" />
-          <div>
-            <h3 class="font-bold text-white text-sm">${b.name}</h3>
-            <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
-              ★ ${b.rating || 5.0} Rating
-            </span>
-          </div>
-          <button class="w-full py-2 bg-slate-800 group-hover:bg-[#F59E0B] group-hover:text-slate-950 text-xs font-bold rounded-xl transition">
-            Choose Barber
-          </button>
-        </div>
-      `).join("")}
-    </div>
-  `;
-
-  container.querySelectorAll(".barber-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      const id = card.getAttribute("data-id");
-      STATE.selectedBarber = BARBERS.find((b) => String(b.id) === String(id)) || BARBERS[0];
-      STATE.step = 2;
-      renderStep();
+function wireStepNavClicks() {
+  document.querySelectorAll(".step-nav-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const target = parseInt(item.getAttribute("data-step"));
+      // Only allow navigating back to completed steps or current step
+      if (target <= STATE.step) {
+        STATE.step = target;
+        renderApp();
+      }
     });
   });
 }
 
-/* ---------------- STEP 2: SERVICES ---------------- */
-function renderStep2(container) {
-  container.innerHTML = `
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h2 class="text-xl font-bold text-white">Select Service</h2>
-        <p class="text-xs text-slate-400">Chosen Barber: <strong class="text-[#F59E0B]">${STATE.selectedBarber.name}</strong></p>
-      </div>
-      <button id="back-to-1" class="text-xs text-slate-400 hover:text-white transition">← Change Barber</button>
-    </div>
+// ==========================================
+// 4. MAIN RENDER ROUTER
+// ==========================================
+function renderApp() {
+  updateHeaderAndTimer();
+  updateStepperNav();
+  renderStickyMobileCta();
 
-    <div class="space-y-3">
-      ${SERVICES.map((s) => `
-        <div data-id="${s.id}" class="service-card cursor-pointer p-5 rounded-2xl border transition-all duration-300 flex items-center justify-between ${
-          STATE.selectedService?.id === s.id
-            ? "border-[#F59E0B] bg-[#F59E0B]/10 ring-2 ring-[#F59E0B]/30"
-            : "border-slate-800 bg-slate-900/60 hover:border-[#F59E0B]/50"
-        }">
-          <div>
-            <h3 class="font-bold text-white text-base">${s.name}</h3>
-            <p class="text-xs text-slate-400 mt-1">${s.desc || ""}</p>
-            <span class="inline-block mt-2 text-[10px] font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md">
-              ⏱ ${s.duration} minutes
+  const container = document.getElementById("step-content");
+  if (!container) return;
+
+  switch (STATE.step) {
+    case 0:
+      renderStep0Hero(container);
+      break;
+    case 1:
+      renderStep1Services(container);
+      break;
+    case 2:
+      renderStep2Barbers(container);
+      break;
+    case 3:
+      renderStep3DateAndSlots(container);
+      break;
+    case 4:
+      renderStep4CustomerDetails(container);
+      break;
+    case 5:
+      renderStep5Confirmation(container);
+      break;
+    default:
+      renderStep0Hero(container);
+  }
+
+  // Smooth scroll to container on step change if past step 0
+  if (STATE.step > 0) {
+    window.scrollTo({ top: container.offsetTop - 80, behavior: "smooth" });
+  }
+}
+
+// ==========================================
+// 5. STEP 0: HERO & GALLERY LANDING VIEW
+// ==========================================
+function renderStep0Hero(container) {
+  const shop = STATE.shop || {};
+  const defaultHero = FallbackAssets.getDefaultHero();
+  const defaultLogo = FallbackAssets.getDefaultLogo();
+
+  // Fallback brand logo and hero banner
+  const brandLogo = (shop.logoUrl && shop.logoUrl.trim() !== "" && !shop.logoUrl.includes("unsplash.com"))
+    ? shop.logoUrl
+    : defaultLogo;
+
+  const heroBanner = (shop.coverImageUrl && shop.coverImageUrl.trim() !== "" && !shop.coverImageUrl.includes("unsplash.com"))
+    ? shop.coverImageUrl
+    : defaultHero;
+
+  // Gallery: check if shop.photos has valid non-empty items, otherwise use the 3 curated aesthetic cards
+  let galleryItems = [];
+  if (shop.photos && Array.isArray(shop.photos) && shop.photos.length > 0) {
+    galleryItems = shop.photos
+      .filter(p => p && (p.dataUrl || p.url || (typeof p === "string" && p.trim() !== "")))
+      .map((p, idx) => ({
+        title: `Studio Photo ${idx + 1}`,
+        dataUrl: p.dataUrl || p.url || p
+      }));
+  }
+  if (galleryItems.length === 0) {
+    galleryItems = FallbackAssets.getDefaultGallery();
+  }
+
+  const freeMapQuery = encodeURIComponent(`${shop.name} ${shop.fullAddress || shop.city || "Riyadh"}`);
+  const freeMapLink = `https://maps.google.com/?q=${freeMapQuery}`;
+
+  container.innerHTML = `
+    <!-- Salon Cover Banner Hero -->
+    <div class="relative w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900 group">
+      <div class="aspect-[16/9] sm:aspect-[21/9] w-full relative">
+        <img src="${heroBanner}" alt="${shop.name} Cover" width="1200" height="480"
+             class="w-full h-full object-cover"
+             onerror="this.onerror=null; this.src='${defaultHero}';" />
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0B0F17] via-[#0B0F17]/60 to-transparent"></div>
+      </div>
+
+      <!-- Floating Salon Identity Card -->
+      <div class="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex items-end gap-3 sm:gap-4">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-[#F59E0B] shadow-2xl bg-slate-950 flex-shrink-0">
+          <img src="${brandLogo}" alt="${shop.name} Logo" width="80" height="80"
+               class="w-full h-full object-cover"
+               onerror="this.onerror=null; this.src='${defaultLogo}';" />
+        </div>
+        <div class="flex-1 min-w-0 pb-1">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 tracking-wider uppercase">Verified Salon</span>
+            <span class="text-[10px] sm:text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Open Today
             </span>
           </div>
-          <div class="text-right flex flex-col items-end">
-            <span class="text-xl font-extrabold text-[#F59E0B]">${s.price} SAR</span>
-            <button class="mt-2 px-4 py-1.5 bg-[#F59E0B] text-slate-950 font-bold text-xs rounded-xl hover:opacity-90 transition">
-              Select
+          <h2 class="text-base sm:text-2xl font-extrabold text-white truncate drop-shadow-md mt-0.5">${shop.name}</h2>
+          <p class="text-[11px] sm:text-xs text-slate-300 truncate">${shop.fullAddress || shop.city || "Saudi Arabia"}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Highlights Bar -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 text-center">
+      <div class="p-2.5 sm:p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+        <span class="text-[10px] uppercase text-slate-400 tracking-wider block">City</span>
+        <span class="text-xs font-bold text-white truncate block mt-0.5">${shop.city || "Riyadh"}</span>
+      </div>
+      <div class="p-2.5 sm:p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+        <span class="text-[10px] uppercase text-slate-400 tracking-wider block">Contact Phone</span>
+        <a href="tel:${shop.phone || "0501234567"}" class="text-xs font-bold text-[#F59E0B] hover:underline block mt-0.5">${shop.phone || "0501234567"}</a>
+      </div>
+      <div class="p-2.5 sm:p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+        <span class="text-[10px] uppercase text-slate-400 tracking-wider block">Booking Window</span>
+        <span class="text-xs font-bold text-emerald-400 block mt-0.5">Next 14 Days</span>
+      </div>
+      <div class="p-2.5 sm:p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+        <span class="text-[10px] uppercase text-slate-400 tracking-wider block">Directions</span>
+        <a href="${freeMapLink}" target="_blank" rel="noopener" class="text-xs font-bold text-sky-400 hover:underline block mt-0.5">Open Map ↗</a>
+      </div>
+    </div>
+
+    <!-- Photo Gallery Showcase with Horizontal Touch Scroll Snap -->
+    <div class="mt-6">
+      <div class="flex items-center justify-between mb-2.5">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-[#F59E0B] flex items-center gap-1.5">
+          <span>📸</span> Salon Ambience & Atmosphere
+        </h3>
+        <span class="text-[10px] text-slate-400">Swipe to view</span>
+      </div>
+
+      <div class="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-none" style="scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;">
+        ${galleryItems.slice(0, 5).map((img, i) => `
+          <div class="flex-shrink-0 w-64 sm:w-72 snap-center rounded-xl overflow-hidden border border-slate-800 bg-slate-900 relative group shadow-md">
+            <img src="${img.dataUrl}" alt="${img.title || 'Salon Interior'}" loading="lazy" width="288" height="180"
+                 class="w-full h-36 sm:h-44 object-cover transition-transform duration-300 group-hover:scale-105"
+                 onerror="this.onerror=null; this.src='${defaultHero}';" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-[11px] font-semibold text-white drop-shadow">${img.title || `Studio View ${i + 1}`}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- Primary Hero Booking CTA -->
+    <div class="mt-7 pt-4 border-t border-slate-800/80 text-center">
+      <button id="hero-book-cta" class="w-full sm:w-auto min-h-[48px] px-8 py-3.5 bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-slate-950 font-extrabold text-sm rounded-xl shadow-lg shadow-[#F59E0B]/20 hover:brightness-110 active:scale-[0.98] transition flex items-center justify-center gap-2 mx-auto">
+        <span>💈 Book Appointment Now</span>
+        <span class="text-xs bg-slate-950/20 px-2 py-0.5 rounded-full">Next ↗</span>
+      </button>
+      <p class="text-[11px] text-slate-400 mt-2">Instant slot confirmation • 5-minute concurrency hold • Free cancellation</p>
+    </div>
+  `;
+
+  document.getElementById("hero-book-cta")?.addEventListener("click", () => {
+    STATE.step = 1;
+    renderApp();
+  });
+}
+
+// ==========================================
+// 6. STEP 1: SERVICE SELECTION (MULTI-SELECT)
+// ==========================================
+function renderStep1Services(container) {
+  const categories = ["All", ...new Set(SERVICES.map(s => s.category || "General Services"))];
+  let activeCategory = "All";
+
+  function renderList(category) {
+    const filtered = category === "All" ? SERVICES : SERVICES.filter(s => (s.category || "General Services") === category);
+    const servicesListEl = document.getElementById("services-list-container");
+    if (!servicesListEl) return;
+
+    servicesListEl.innerHTML = filtered.map(service => {
+      const isSelected = STATE.selectedServices.some(s => String(s.id) === String(service.id));
+      return `
+        <div data-id="${service.id}" class="service-card cursor-pointer p-4 rounded-xl border transition-all select-none min-h-[48px] flex items-center justify-between gap-3 ${
+          isSelected
+            ? "border-[#F59E0B] bg-[#F59E0B]/10 ring-2 ring-[#F59E0B]/30"
+            : "border-slate-800 bg-slate-900/70 hover:border-slate-700 active:bg-slate-800/80"
+        }">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h4 class="font-bold text-white text-sm sm:text-base truncate">${service.name}</h4>
+              ${service.category ? `<span class="px-2 py-0.5 text-[9px] rounded-md font-semibold bg-slate-800 text-slate-300 border border-slate-700/60">${service.category}</span>` : ""}
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5 line-clamp-2">${service.desc || "Standard professional salon service"}</p>
+            <div class="flex items-center gap-3 mt-2 text-[10px] font-semibold text-slate-300">
+              <span class="flex items-center gap-1 text-[#F59E0B]">
+                <span>⏱</span> ${service.duration} mins
+              </span>
+              ${service.buffer ? `<span class="text-slate-400">+${service.buffer}m buffer</span>` : ""}
+            </div>
+          </div>
+
+          <div class="text-right flex flex-col items-end flex-shrink-0">
+            <span class="text-base sm:text-lg font-black text-[#F59E0B]">${service.price} SAR</span>
+            <button class="mt-2 min-h-[36px] px-3 py-1 text-xs font-bold rounded-lg transition ${
+              isSelected
+                ? "bg-[#F59E0B] text-slate-950 font-extrabold"
+                : "bg-slate-800 text-slate-200 hover:bg-slate-700"
+            }">
+              ${isSelected ? "✓ Added" : "+ Select"}
             </button>
           </div>
         </div>
+      `;
+    }).join("");
+
+    servicesListEl.querySelectorAll(".service-card").forEach(card => {
+      card.addEventListener("click", () => {
+        const id = card.getAttribute("data-id");
+        const found = SERVICES.find(s => String(s.id) === String(id));
+        if (!found) return;
+
+        const existsIdx = STATE.selectedServices.findIndex(s => String(s.id) === String(id));
+        if (existsIdx > -1) {
+          STATE.selectedServices.splice(existsIdx, 1);
+        } else {
+          STATE.selectedServices.push(found);
+        }
+        renderApp();
+      });
+    });
+  }
+
+  container.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-base sm:text-lg font-bold text-white">1. Select Services</h3>
+        <p class="text-xs text-slate-400">Choose one or more grooming services</p>
+      </div>
+      <button id="step1-back-to-hero" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded border border-slate-800">
+        ← Salon Details
+      </button>
+    </div>
+
+    <!-- Category Filter Chips -->
+    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-none mb-4" id="category-chips">
+      ${categories.map(cat => `
+        <button data-category="${cat}" class="cat-chip whitespace-nowrap min-h-[36px] px-3.5 py-1 text-xs font-semibold rounded-full border transition ${
+          cat === activeCategory
+            ? "border-[#F59E0B] bg-[#F59E0B] text-slate-950"
+            : "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700"
+        }">
+          ${cat}
+        </button>
       `).join("")}
+    </div>
+
+    <div id="services-list-container" class="space-y-2.5"></div>
+  `;
+
+  document.getElementById("step1-back-to-hero")?.addEventListener("click", () => {
+    STATE.step = 0;
+    renderApp();
+  });
+
+  const chips = container.querySelectorAll(".cat-chip");
+  chips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      activeCategory = chip.getAttribute("data-category");
+      chips.forEach(c => {
+        const isActive = c.getAttribute("data-category") === activeCategory;
+        c.className = `cat-chip whitespace-nowrap min-h-[36px] px-3.5 py-1 text-xs font-semibold rounded-full border transition ${
+          isActive
+            ? "border-[#F59E0B] bg-[#F59E0B] text-slate-950"
+            : "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700"
+        }`;
+      });
+      renderList(activeCategory);
+    });
+  });
+
+  renderList(activeCategory);
+}
+
+// ==========================================
+// 7. STEP 2: BARBER SELECTION (PRIVACY GUARD)
+// ==========================================
+function renderStep2Barbers(container) {
+  const isAnySelected = STATE.selectedBarber && STATE.selectedBarber.id === "any";
+  const defaultAvatar = FallbackAssets.getDefaultAvatar();
+
+  container.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-base sm:text-lg font-bold text-white">2. Select Your Barber</h3>
+        <p class="text-xs text-slate-400">Choose a specialist or fast-track with first available</p>
+      </div>
+      <button id="step2-back-to-services" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded border border-slate-800">
+        ← Services
+      </button>
+    </div>
+
+    <!-- Fast-Track Option: Any Available Barber -->
+    <div id="barber-any-card" class="cursor-pointer p-4 rounded-xl border transition-all mb-4 flex items-center justify-between min-h-[48px] ${
+      isAnySelected
+        ? "border-[#F59E0B] bg-[#F59E0B]/10 ring-2 ring-[#F59E0B]/30"
+        : "border-slate-800 bg-slate-900/80 hover:border-[#F59E0B]/50"
+    }">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-[#F59E0B] to-amber-600 flex items-center justify-center text-slate-950 font-black text-lg shadow-md flex-shrink-0">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h4 class="font-bold text-white text-sm">Any Available Barber</h4>
+            <span class="text-[9px] px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Fastest</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Auto-assigns top barber available on duty</p>
+        </div>
+      </div>
+      <button class="min-h-[40px] px-3.5 py-1 text-xs font-bold rounded-lg transition ${
+        isAnySelected ? "bg-[#F59E0B] text-slate-950" : "bg-slate-800 text-slate-200"
+      }">
+        ${isAnySelected ? "Selected" : "Select"}
+      </button>
+    </div>
+
+    <!-- Specific Barber Staff Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      ${BARBERS.map(barber => {
+        const isSelected = STATE.selectedBarber && String(STATE.selectedBarber.id) === String(barber.id);
+        const avatarSrc = (barber.avatar && barber.avatar.trim() !== "" && !barber.avatar.includes("unsplash.com"))
+          ? barber.avatar
+          : defaultAvatar;
+
+        return `
+          <div data-id="${barber.id}" class="barber-card cursor-pointer p-4 rounded-xl border transition-all flex items-center justify-between min-h-[48px] ${
+            isSelected
+              ? "border-[#F59E0B] bg-[#F59E0B]/10 ring-2 ring-[#F59E0B]/30"
+              : "border-slate-800 bg-slate-900/60 hover:border-slate-700"
+          }">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full overflow-hidden border border-[#F59E0B]/40 bg-slate-950 flex-shrink-0">
+                <img src="${avatarSrc}" alt="${barber.name}" width="48" height="48"
+                     class="w-full h-full object-cover"
+                     onerror="this.onerror=null; this.src='${defaultAvatar}';" />
+              </div>
+              <div>
+                <h4 class="font-bold text-white text-sm">${barber.name}</h4>
+                <p class="text-xs text-slate-400">${barber.title || "Master Stylist"}</p>
+                <span class="inline-block mt-1 text-[10px] font-semibold text-[#F59E0B]">
+                  ★ ${barber.rating || "5.0"} Rating
+                </span>
+              </div>
+            </div>
+
+            <button class="min-h-[36px] px-3 py-1 text-xs font-bold rounded-lg transition ${
+              isSelected ? "bg-[#F59E0B] text-slate-950" : "bg-slate-800 text-slate-300"
+            }">
+              ${isSelected ? "Selected" : "Select"}
+            </button>
+          </div>
+        `;
+      }).join("")}
     </div>
   `;
 
-  document.getElementById("back-to-1").addEventListener("click", () => {
+  document.getElementById("step2-back-to-services")?.addEventListener("click", () => {
     STATE.step = 1;
-    renderStep();
+    renderApp();
   });
 
-  container.querySelectorAll(".service-card").forEach((card) => {
+  document.getElementById("barber-any-card")?.addEventListener("click", () => {
+    STATE.selectedBarber = { id: "any", name: "Any Available Barber", title: "Assigned by Salon" };
+    STATE.step = 3;
+    renderApp();
+  });
+
+  container.querySelectorAll(".barber-card").forEach(card => {
     card.addEventListener("click", () => {
       const id = card.getAttribute("data-id");
-      STATE.selectedService = SERVICES.find((s) => String(s.id) === String(id)) || SERVICES[0];
-      STATE.step = 3;
-      renderStep();
+      const found = BARBERS.find(b => String(b.id) === String(id));
+      if (found) {
+        STATE.selectedBarber = found;
+        STATE.step = 3;
+        renderApp();
+      }
     });
   });
 }
 
-/* ---------------- STEP 3: DATE & SLOT GRID ---------------- */
-function renderStep3(container) {
+// ==========================================
+// 8. STEP 3: DATE & TIME SLOTS (SALON STORE SYNC)
+// ==========================================
+function renderStep3DateAndSlots(container) {
+  const dates = [];
+  const today = new Date();
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const iso = d.toISOString().split("T")[0];
+    const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+    const dayNum = d.getDate();
+    const monthName = d.toLocaleDateString("en-US", { month: "short" });
+    const dayKey = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][d.getDay()];
+
+    dates.push({ iso, dayName, dayNum, monthName, dayKey });
+  }
+
+  const slotsGrouped = getDynamicSlotsForDate(STATE.shop, STATE.selectedDate);
   const existingBookings = Store.getBookings(STATE.shopSlug);
 
   container.innerHTML = `
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-4">
       <div>
-        <h2 class="text-xl font-bold text-white">Select Date & Time Slot</h2>
-        <p class="text-xs text-slate-400">${STATE.selectedService.name} (${STATE.selectedService.duration} mins)</p>
+        <h3 class="text-base sm:text-lg font-bold text-white">3. Select Date & Slot</h3>
+        <p class="text-xs text-slate-400">
+          Barber: <strong class="text-[#F59E0B]">${STATE.selectedBarber?.name || "Any Available"}</strong>
+          (${STATE.selectedServices.length} service${STATE.selectedServices.length > 1 ? "s" : ""})
+        </p>
       </div>
-      <button id="back-to-2" class="text-xs text-slate-400 hover:text-white transition">← Back to Services</button>
+      <button id="step3-back-to-barbers" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded border border-slate-800">
+        ← Barber
+      </button>
     </div>
 
-    <!-- Date Picker Input -->
-    <div class="mb-6 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
-      <label class="text-xs text-slate-400 block mb-1 font-medium">Select Booking Date</label>
-      <input type="date" id="date-picker" value="${STATE.selectedDate}" class="bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F59E0B]" />
+    <!-- 14-Day Horizontal Touch Picker Strip -->
+    <div class="mb-5">
+      <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Next 14 Days Availability</label>
+      <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory" style="-webkit-overflow-scrolling: touch;">
+        ${dates.map(d => {
+          const isSelected = d.iso === STATE.selectedDate;
+          return `
+            <button data-date="${d.iso}" class="date-strip-chip flex-shrink-0 snap-start flex flex-col items-center justify-center w-16 py-2.5 rounded-xl border transition min-h-[48px] select-none ${
+              isSelected
+                ? "border-[#F59E0B] bg-[#F59E0B] text-slate-950 font-bold shadow-lg shadow-[#F59E0B]/20 scale-105"
+                : "border-slate-800 bg-slate-900/80 text-slate-300 hover:border-slate-700"
+            }">
+              <span class="text-[10px] uppercase font-semibold ${isSelected ? "text-slate-950" : "text-slate-400"}">${d.dayName}</span>
+              <span class="text-base font-extrabold my-0.5">${d.dayNum}</span>
+              <span class="text-[9px] ${isSelected ? "text-slate-950 font-bold" : "text-slate-400"}">${d.monthName}</span>
+            </button>
+          `;
+        }).join("")}
+      </div>
     </div>
 
-    <!-- Bucket Slots -->
-    <div class="space-y-6">
-      ${["morning", "afternoon", "evening"].map((bucket) => `
-        <div>
-          <h3 class="text-xs uppercase tracking-wider text-[#F59E0B] font-bold mb-3">${bucket.toUpperCase()} SLOTS</h3>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            ${DEFAULT_SLOTS[bucket].map((slot) => {
-              const isBooked = existingBookings.some(
-                (b) => b.barber === STATE.selectedBarber.name && b.time === slot.time && b.date === STATE.selectedDate
-              );
-              return `
-                <button data-time="${slot.time}" ${isBooked ? "disabled" : ""} class="slot-btn py-3 px-4 rounded-xl font-semibold text-xs border transition-all ${
-                  isBooked
-                    ? "bg-slate-900/40 text-slate-600 border-slate-800/40 cursor-not-allowed"
-                    : STATE.selectedSlot === slot.time
-                    ? "bg-[#F59E0B] text-slate-950 border-[#F59E0B] font-bold shadow-lg"
-                    : "bg-slate-900 text-slate-200 border-slate-800 hover:border-[#F59E0B] hover:text-[#F59E0B]"
-                }">
-                  ${slot.time}
-                  ${isBooked ? `<span class="block text-[9px] font-normal text-slate-600">Booked</span>` : `<span class="block text-[9px] font-semibold text-emerald-400">Available</span>`}
-                </button>
-              `;
-            }).join("")}
-          </div>
-        </div>
-      `).join("")}
-    </div>
+    <!-- Slot Buckets: Morning, Afternoon, Evening -->
+    ${slotsGrouped.isClosed ? `
+      <div class="p-8 text-center bg-slate-900/60 rounded-2xl border border-slate-800">
+        <span class="text-3xl block mb-2">🌙</span>
+        <h4 class="font-bold text-white text-base">Salon Closed on this Day</h4>
+        <p class="text-xs text-slate-400 mt-1">The salon schedule indicates this is an off day. Please select another date from the strip above.</p>
+      </div>
+    ` : `
+      <div class="space-y-4">
+        ${["morning", "afternoon", "evening"].map(bucket => {
+          const list = slotsGrouped[bucket] || [];
+          if (list.length === 0) return "";
+
+          const bucketTitle = bucket === "morning" ? "Morning Slots" : bucket === "afternoon" ? "Afternoon Slots" : "Evening Slots";
+          const bucketIcon = bucket === "morning" ? "🌅" : bucket === "afternoon" ? "☀️" : "🌆";
+
+          return `
+            <div class="bg-slate-900/40 p-3.5 sm:p-4 rounded-xl border border-slate-800/80">
+              <h4 class="text-xs uppercase font-extrabold tracking-wider text-[#F59E0B] mb-2.5 flex items-center gap-1.5">
+                <span>${bucketIcon}</span> ${bucketTitle}
+              </h4>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                ${list.map(slot => {
+                  const isBooked = isSlotUnavailable(slot.time, STATE.selectedDate, STATE.selectedBarber, existingBookings);
+                  const isSelected = STATE.selectedSlot === slot.time;
+
+                  return `
+                    <button data-time="${slot.time}" ${isBooked ? "disabled" : ""} class="slot-chip min-h-[48px] py-2 px-2.5 rounded-xl font-bold text-xs border transition-all flex flex-col items-center justify-center select-none ${
+                      isBooked
+                        ? "bg-slate-900/40 text-slate-600 border-slate-800/40 cursor-not-allowed opacity-60"
+                        : isSelected
+                        ? "bg-[#F59E0B] text-slate-950 border-[#F59E0B] shadow-md shadow-[#F59E0B]/20 ring-2 ring-[#F59E0B]/30"
+                        : "bg-slate-900 text-slate-200 border-slate-800 hover:border-[#F59E0B] hover:text-[#F59E0B] active:scale-95"
+                    }">
+                      <span class="font-mono text-xs sm:text-sm">${slot.time}</span>
+                      <span class="text-[9px] mt-0.5 font-normal ${isBooked ? "text-slate-600" : isSelected ? "text-slate-900 font-semibold" : "text-emerald-400"}">
+                        ${isBooked ? "Unavailable" : "Available"}
+                      </span>
+                    </button>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `}
   `;
 
-  document.getElementById("back-to-2").addEventListener("click", () => {
+  document.getElementById("step3-back-to-barbers")?.addEventListener("click", () => {
     STATE.step = 2;
-    renderStep();
+    renderApp();
   });
 
-  document.getElementById("date-picker").addEventListener("change", (e) => {
-    STATE.selectedDate = e.target.value;
-    renderStep3(container);
+  container.querySelectorAll(".date-strip-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      STATE.selectedDate = btn.getAttribute("data-date");
+      STATE.selectedSlot = null;
+      renderApp();
+    });
   });
 
-  container.querySelectorAll(".slot-btn").forEach((btn) => {
+  container.querySelectorAll(".slot-chip:not([disabled])").forEach(btn => {
     btn.addEventListener("click", () => {
       STATE.selectedSlot = btn.getAttribute("data-time");
-      startHoldTimer();
+
+      Store.addAuditLog(
+        "customer@funnel",
+        STATE.shop?.name || STATE.shopSlug,
+        "CUSTOMER_SLOT_HOLD",
+        `Temporary 5-minute lock placed on ${STATE.selectedSlot} on ${STATE.selectedDate} for barber ${STATE.selectedBarber?.name}`
+      );
+
+      startConcurrencyHoldTimer();
       STATE.step = 4;
-      renderStep();
+      renderApp();
     });
   });
 }
 
-/* ---------------- STEP 4: CUSTOMER FORM ---------------- */
-function renderStep4(container) {
+// ==========================================
+// 9. STEP 4: CUSTOMER DETAILS & REVIEW CARD
+// ==========================================
+function renderStep4CustomerDetails(container) {
+  const totalDuration = STATE.selectedServices.reduce((sum, s) => sum + (s.duration || 30) + (s.buffer || 0), 0);
+  const totalPrice = STATE.selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+
   container.innerHTML = `
-    <div class="max-w-md mx-auto space-y-6">
-      <div class="text-center">
-        <h2 class="text-xl font-bold text-white">Customer Information</h2>
-        <p class="text-xs text-slate-400 mt-1">Provide your contact details to reserve your appointment</p>
+    <div class="max-w-lg mx-auto space-y-4 sm:space-y-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-white">4. Customer Details & Review</h3>
+          <p class="text-xs text-slate-400">Review your appointment and confirm reservation</p>
+        </div>
+        <button id="step4-back-to-slots" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded border border-slate-800">
+          ← Slot
+        </button>
       </div>
 
-      <form id="customer-form" class="space-y-4 bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
+      <!-- Instant Review Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 text-left space-y-2.5 sm:space-y-3 shadow-lg">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs text-slate-400">Salon</span>
+          <span class="text-xs font-bold text-white">${STATE.shop?.name}</span>
+        </div>
+
+        <div class="border-b border-slate-800 pb-2">
+          <span class="text-xs text-slate-400 block mb-1">Selected Services (${STATE.selectedServices.length})</span>
+          <div class="space-y-1">
+            ${STATE.selectedServices.map(s => `
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300">• ${s.name} (${s.duration}m)</span>
+                <span class="font-bold text-[#F59E0B]">${s.price} SAR</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
+          <span class="text-slate-400">Barber</span>
+          <span class="font-bold text-white">${STATE.selectedBarber?.name}</span>
+        </div>
+
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
+          <span class="text-slate-400">Date & Slot</span>
+          <span class="font-bold text-[#F59E0B] font-mono">${STATE.selectedDate} @ ${STATE.selectedSlot}</span>
+        </div>
+
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
+          <span class="text-slate-400">Estimated Duration</span>
+          <span class="font-bold text-white">${totalDuration} minutes</span>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <span class="text-sm font-bold text-slate-300">Total Due (Pay at Salon)</span>
+          <span class="text-lg sm:text-xl font-black text-[#F59E0B]">${totalPrice} SAR</span>
+        </div>
+      </div>
+
+      <!-- Customer Form -->
+      <form id="customer-funnel-form" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3.5">
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
-          <input type="text" id="cust-name" required value="${STATE.customer.fullName}" placeholder="e.g. Mohammed Al-Ghamdi" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+          <label class="block text-xs font-medium text-slate-300 mb-1">Full Name <span class="text-red-400">*</span></label>
+          <input type="text" id="cust-fullname" required
+                 value="${STATE.customer.fullName || ''}"
+                 placeholder="e.g. Mohammed Al-Ghamdi"
+                 class="w-full min-h-[48px] bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#F59E0B]" />
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Saudi Mobile Number (05XXXXXXXX)</label>
-          <input type="tel" id="cust-phone" required maxlength="10" value="${STATE.customer.phone}" placeholder="05XXXXXXXX" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B] font-mono tracking-wider" />
-          <p class="text-[10px] text-slate-400 mt-1">Format: 10-digit Saudi mobile starting with 05 (without 00966 or +966)</p>
-          <p id="phone-error" class="hidden text-[11px] text-red-400 font-semibold mt-1">⚠️ Invalid Saudi phone format. Please enter a 10-digit number starting with 05 (e.g. 0512345678) without 00966 or country code.</p>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Saudi Mobile Number <span class="text-red-400">*</span></label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-mono select-none">🇸🇦</span>
+            <input type="tel" id="cust-phone-input" required maxlength="10"
+                   value="${STATE.customer.phone || ''}"
+                   placeholder="05XXXXXXXX"
+                   class="w-full min-h-[48px] pl-10 pr-4 bg-slate-800 border border-slate-700 text-white rounded-xl py-2 text-sm focus:outline-none focus:border-[#F59E0B] font-mono tracking-wider" />
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1">Must be 10 digits starting with 05 (e.g. 0512345678)</p>
+          <p id="phone-validation-err" class="hidden text-[11px] text-red-400 font-semibold mt-1">⚠️ Invalid Saudi number. Enter 10 digits starting with 05 without country code.</p>
         </div>
 
-        <button type="submit" class="w-full py-3 bg-[#F59E0B] text-slate-950 font-bold text-xs rounded-xl hover:bg-[#D97706] transition shadow-lg shadow-[#F59E0B]/20">
-          Confirm Appointment
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Special Notes / Requests <span class="text-slate-500">(Optional)</span></label>
+          <textarea id="cust-notes-input" rows="2"
+                    placeholder="e.g. Low skin fade, beard shaping only, organic oils"
+                    class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-[#F59E0B]">${STATE.customer.notes || ''}</textarea>
+        </div>
+
+        <!-- Prominent Cancellation Advisory Notice -->
+        <div class="p-3 bg-amber-500/10 border border-[#F59E0B]/30 rounded-xl text-left">
+          <div class="flex items-start gap-2">
+            <span class="text-base text-[#F59E0B]">ℹ️</span>
+            <div>
+              <h5 class="text-xs font-bold text-[#F59E0B]">Cancellation / Rescheduling Policy</h5>
+              <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                Need to cancel or modify? Please call the salon directly at
+                <a href="tel:${STATE.shop?.phone || '0501234567'}" class="text-white font-bold underline font-mono">${STATE.shop?.phone || "0501234567"}</a>
+                or customer care at <span class="text-white font-bold">050 123 4567</span> at least 2 hours before your appointment.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full min-h-[48px] py-3.5 bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-slate-950 font-extrabold text-sm rounded-xl shadow-lg shadow-[#F59E0B]/20 hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2">
+          <span>✓ Confirm & Schedule Appointment</span>
         </button>
       </form>
     </div>
   `;
 
-  const phoneInput = document.getElementById("cust-phone");
-  const phoneError = document.getElementById("phone-error");
+  document.getElementById("step4-back-to-slots")?.addEventListener("click", () => {
+    STATE.step = 3;
+    renderApp();
+  });
 
-  // Real-time auto-cleaning: strip country codes if typed or pasted
-  phoneInput.addEventListener("input", (e) => {
+  const phoneInput = document.getElementById("cust-phone-input");
+  const phoneErr = document.getElementById("phone-validation-err");
+
+  phoneInput?.addEventListener("input", (e) => {
     let val = e.target.value.replace(/\s+/g, "");
     if (val.startsWith("+966")) val = "0" + val.slice(4);
     else if (val.startsWith("00966")) val = "0" + val.slice(5);
     else if (val.startsWith("966") && val.length > 9) val = "0" + val.slice(3);
 
     e.target.value = val;
-    phoneError.classList.add("hidden");
+    phoneErr?.classList.add("hidden");
   });
 
-  document.getElementById("customer-form").addEventListener("submit", (e) => {
+  document.getElementById("customer-funnel-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = document.getElementById("cust-name").value.trim();
-    const phone = document.getElementById("cust-phone").value.trim();
+    const name = document.getElementById("cust-fullname")?.value.trim() || "";
+    const phone = document.getElementById("cust-phone-input")?.value.trim() || "";
+    const notes = document.getElementById("cust-notes-input")?.value.trim() || "";
 
-    // Strict Saudi Phone Regex (without 00966 / +966 / 966)
-    const SAUDI_PHONE_REGEX = /^05[0-9]{8}$/;
-    if (!SAUDI_PHONE_REGEX.test(phone)) {
-      phoneError.classList.remove("hidden");
+    const SAUDI_REGEX = /^05[0-9]{8}$/;
+    if (!SAUDI_REGEX.test(phone)) {
+      phoneErr?.classList.remove("hidden");
+      phoneInput?.focus();
       return;
     }
-    phoneError.classList.add("hidden");
+    phoneErr?.classList.add("hidden");
 
     STATE.customer.fullName = name;
     STATE.customer.phone = phone;
+    STATE.customer.notes = notes;
 
-    // Persist real booking to Store & sync real-time
-    Store.addBooking({
+    STATE.bookingRef = `BBR-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const totalPriceCalc = STATE.selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+    const serviceNames = STATE.selectedServices.map(s => s.name).join(", ");
+
+    // Persist real record to backend MySQL database
+    let dbBooking = null;
+    try {
+      const isLocalhost = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+      const backendBase = (isLocalhost && window.location.port !== "8080") ? "http://localhost:8080" : "";
+      const payload = {
+        shopSlug: STATE.shopSlug,
+        shopId: STATE.shop?.id,
+        barberId: STATE.selectedBarber?.id,
+        barberName: STATE.selectedBarber?.name,
+        serviceId: STATE.selectedServices[0]?.id,
+        serviceName: serviceNames,
+        customerName: STATE.customer.fullName,
+        customerPhone: STATE.customer.phone,
+        date: STATE.selectedDate,
+        time: STATE.selectedSlot,
+        slotStart: convertSlotToIso(STATE.selectedDate, STATE.selectedSlot),
+        notes: notes,
+        referenceCode: STATE.bookingRef
+      };
+      const res = await fetch(`${backendBase}/api/bookings/public`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        dbBooking = await res.json();
+        console.log("Customer booking persisted to database:", dbBooking);
+      } else {
+        console.warn("Backend booking persistence response:", res.status);
+      }
+    } catch (err) {
+      console.warn("REST public booking save failed, falling back to local store:", err);
+    }
+
+    const savedBooking = Store.addBooking({
+      id: dbBooking?.id || Date.now(),
       shopSlug: STATE.shopSlug,
       barber: STATE.selectedBarber.name,
       time: STATE.selectedSlot,
       date: STATE.selectedDate,
       customerName: STATE.customer.fullName,
       customerPhone: STATE.customer.phone,
-      service: STATE.selectedService.name,
-      price: STATE.selectedService.price
+      service: serviceNames,
+      price: totalPriceCalc,
+      referenceCode: STATE.bookingRef,
+      notes: notes,
+      status: "CONFIRMED",
+      slotStart: dbBooking?.slotStart || convertSlotToIso(STATE.selectedDate, STATE.selectedSlot)
     });
 
+    STATE.confirmedBooking = savedBooking;
+
+    Store.addAuditLog(
+      STATE.customer.phone,
+      STATE.shop?.name || STATE.shopSlug,
+      "CUSTOMER_BOOKING_CONFIRMED",
+      `Booking ${STATE.bookingRef} confirmed for ${STATE.customer.fullName} (${STATE.customer.phone}) with ${STATE.selectedBarber.name} on ${STATE.selectedDate} @ ${STATE.selectedSlot}. Services: [${serviceNames}], Total: ${totalPriceCalc} SAR. Notes: ${notes || "None"}. Cancellation contact: ${STATE.shop?.phone || "0501234567"}`
+    );
+
+    clearInterval(STATE.timerInterval);
+    document.getElementById("hold-timer-container")?.classList.add("hidden");
+    document.getElementById("timer-bar-container")?.classList.add("hidden");
+
     STATE.step = 5;
-    renderStep();
+    renderApp();
   });
 }
 
-/* ---------------- STEP 5: CONFIRMATION & QR ---------------- */
-function renderStep5(container) {
-  clearInterval(STATE.timerInterval);
-  document.getElementById("hold-timer-container").classList.add("hidden");
-  document.getElementById("timer-bar-container").classList.add("hidden");
+// ==========================================
+// 10. STEP 5: SUCCESS RECEIPT & DUAL CALENDAR EXPORT
+// ==========================================
+function renderStep5Confirmation(container) {
+  const shop = STATE.shop || {};
+  const serviceNames = STATE.selectedServices.map(s => s.name);
+  const totalPrice = STATE.selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+  const totalDuration = STATE.selectedServices.reduce((sum, s) => sum + (s.duration || 30) + (s.buffer || 0), 0);
+
+  const startIso = convertSlotToIso(STATE.selectedDate, STATE.selectedSlot);
+  const endIso = new Date(new Date(startIso).getTime() + totalDuration * 60000).toISOString();
+
+  const freeMapQuery = encodeURIComponent(`${shop.name} ${shop.fullAddress || shop.city || "Riyadh"}`);
+  const freeMapUrl = `https://maps.google.com/?q=${freeMapQuery}`;
+
+  const googleCalUrl = getGoogleCalendarWebUrl({
+    bookingRef: STATE.bookingRef,
+    shopName: shop.name,
+    barberName: STATE.selectedBarber?.name,
+    serviceNames: serviceNames,
+    startIso: startIso,
+    endIso: endIso,
+    address: shop.fullAddress || shop.city || "Saudi Arabia",
+    salonPhone: shop.phone || "0501234567",
+    notes: STATE.customer.notes
+  });
 
   container.innerHTML = `
-    <div class="max-w-md mx-auto text-center space-y-6">
-      <div class="w-16 h-16 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-2xl font-bold">
+    <div class="max-w-md mx-auto text-center space-y-5">
+      <!-- Success Badge -->
+      <div class="w-16 h-16 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-2xl font-bold shadow-lg shadow-emerald-500/10">
         ✓
       </div>
-      <h2 class="text-2xl font-extrabold text-white">Booking Confirmed!</h2>
-      <p class="text-xs text-slate-400">Your appointment at <strong class="text-white">${STATE.shop?.name}</strong> has been successfully scheduled.</p>
 
-      <!-- Summary Card -->
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 text-left space-y-3">
-        <div class="flex justify-between text-xs py-1 border-b border-slate-800">
-          <span class="text-slate-400">Shop</span>
-          <span class="font-bold text-white">${STATE.shop?.name}</span>
+      <div>
+        <span class="inline-block px-3 py-1 rounded-full text-xs font-mono font-bold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30 tracking-widest uppercase mb-1">
+          REF: ${STATE.bookingRef}
+        </span>
+        <h2 class="text-xl sm:text-2xl font-black text-white">Booking Confirmed!</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Your appointment has been reserved in real-time.</p>
+      </div>
+
+      <!-- Receipt Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 text-left space-y-2.5 text-xs shadow-xl">
+        <div class="flex justify-between py-1 border-b border-slate-800">
+          <span class="text-slate-400">Salon</span>
+          <span class="font-bold text-white">${shop.name}</span>
         </div>
-        <div class="flex justify-between text-xs py-1 border-b border-slate-800">
-          <span class="text-slate-400">Customer Name</span>
+        <div class="flex justify-between py-1 border-b border-slate-800">
+          <span class="text-slate-400">Customer</span>
           <span class="font-bold text-white">${STATE.customer.fullName}</span>
         </div>
-        <div class="flex justify-between text-xs py-1 border-b border-slate-800">
+        <div class="flex justify-between py-1 border-b border-slate-800">
           <span class="text-slate-400">Saudi Phone</span>
-          <span class="font-bold text-white font-mono">${STATE.customer.phone}</span>
+          <span class="font-mono font-bold text-white">${STATE.customer.phone}</span>
         </div>
-        <div class="flex justify-between text-xs py-1 border-b border-slate-800">
+        <div class="flex justify-between py-1 border-b border-slate-800">
           <span class="text-slate-400">Barber</span>
-          <span class="font-bold text-white">${STATE.selectedBarber.name}</span>
+          <span class="font-bold text-white">${STATE.selectedBarber?.name}</span>
         </div>
-        <div class="flex justify-between text-xs py-1 border-b border-slate-800">
-          <span class="text-slate-400">Service</span>
-          <span class="font-bold text-white">${STATE.selectedService.name}</span>
+        <div class="flex justify-between py-1 border-b border-slate-800">
+          <span class="text-slate-400">Date & Slot</span>
+          <span class="font-mono font-bold text-[#F59E0B]">${STATE.selectedDate} @ ${STATE.selectedSlot}</span>
         </div>
-        <div class="flex justify-between text-xs py-1 border-b border-slate-800">
-          <span class="text-slate-400">Date & Time</span>
-          <span class="font-bold text-[#F59E0B]">${STATE.selectedDate} @ ${STATE.selectedSlot}</span>
+        <div class="py-1 border-b border-slate-800">
+          <span class="text-slate-400 block mb-1">Services</span>
+          <div class="text-slate-200 font-semibold space-y-0.5">
+            ${serviceNames.map(s => `<div>• ${s}</div>`).join("")}
+          </div>
         </div>
-        <div class="flex justify-between text-xs py-1">
-          <span class="text-slate-400">Total Price</span>
-          <span class="font-extrabold text-white text-sm">${STATE.selectedService.price} SAR</span>
+        ${STATE.customer.notes ? `
+          <div class="py-1 border-b border-slate-800">
+            <span class="text-slate-400 block mb-0.5">Notes</span>
+            <span class="text-slate-300 italic">${STATE.customer.notes}</span>
+          </div>
+        ` : ""}
+        <div class="flex justify-between pt-1">
+          <span class="text-sm font-bold text-slate-300">Total Price</span>
+          <span class="text-base font-black text-[#F59E0B]">${totalPrice} SAR</span>
         </div>
       </div>
 
-      <!-- Action Triggers -->
-      <div class="flex flex-col sm:flex-row gap-3 pt-2">
-        <button id="download-ics" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl border border-slate-700 transition">
-          📅 Download .ics Calendar
+      <!-- Prominent Cancellation Advisory Card -->
+      <div class="p-3.5 bg-amber-500/10 border border-[#F59E0B]/30 rounded-xl text-left">
+        <h5 class="text-xs font-bold text-[#F59E0B] flex items-center gap-1.5 mb-1">
+          <span>📞</span> Need to Cancel or Reschedule?
+        </h5>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          Please contact salon support directly at
+          <a href="tel:${shop.phone || '0501234567'}" class="text-white font-bold underline font-mono">${shop.phone || "0501234567"}</a>
+          or customer care at <span class="text-white font-bold">050 123 4567</span> at least 2 hours prior to your scheduled time.
+        </p>
+      </div>
+
+      <!-- Dual Calendar Export Actions (iPhone / Apple & Android / Google) -->
+      <div class="space-y-2.5 pt-1">
+        <!-- 1. Apple / iPhone Calendar (.ics download with -PT1H alarm) -->
+        <button id="cal-iphone-btn" class="w-full min-h-[48px] py-3 px-4 bg-slate-900 border border-slate-700 hover:border-[#F59E0B] text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md">
+          <span class="text-base">🍏</span>
+          <span>Add to Apple / iPhone Calendar</span>
         </button>
-        <button id="download-qr" class="flex-1 py-3 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-bold text-xs rounded-xl transition">
-          📱 Download Entry QR Code
+
+        <!-- 2. Google / Android Calendar Direct Link -->
+        <a href="${googleCalUrl}" target="_blank" rel="noopener" class="w-full min-h-[48px] py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:brightness-110 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md">
+          <span class="text-base">📅</span>
+          <span>Add to Google / Android Calendar ↗</span>
+        </a>
+
+        <!-- 3. Free Zero-Cost Map Directions Link -->
+        <a href="${freeMapUrl}" target="_blank" rel="noopener" class="w-full min-h-[48px] py-3 px-4 bg-slate-900 border border-slate-700 hover:border-sky-400 text-sky-400 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
+          <span class="text-base">📍</span>
+          <span>View Salon Location on Map ↗</span>
+        </a>
+      </div>
+
+      <!-- Reset / Book Another -->
+      <div class="pt-3 border-t border-slate-800">
+        <button id="book-another-btn" class="text-xs text-slate-400 hover:text-white underline">
+          Book Another Appointment
         </button>
       </div>
     </div>
   `;
 
-  document.getElementById("download-ics").addEventListener("click", downloadIcs);
-  document.getElementById("download-qr").addEventListener("click", downloadQr);
+  document.getElementById("cal-iphone-btn")?.addEventListener("click", () => {
+    downloadIcsCalendarFile({
+      bookingRef: STATE.bookingRef,
+      shopName: shop.name,
+      barberName: STATE.selectedBarber?.name,
+      serviceNames: serviceNames,
+      startIso: startIso,
+      endIso: endIso,
+      address: shop.fullAddress || shop.city || "Saudi Arabia",
+      salonPhone: shop.phone || "0501234567",
+      notes: STATE.customer.notes
+    });
+  });
+
+  document.getElementById("book-another-btn")?.addEventListener("click", () => {
+    STATE.step = 0;
+    STATE.selectedServices = [];
+    STATE.selectedBarber = null;
+    STATE.selectedSlot = null;
+    STATE.bookingRef = null;
+    renderApp();
+  });
 }
 
-/* ---------------- 5-MINUTE HOLD TIMER LOGIC ---------------- */
-function startHoldTimer() {
+// ==========================================
+// 11. DYNAMIC SLOTS CALCULATOR (FROM SALON STORE)
+// ==========================================
+function getDynamicSlotsForDate(shop, dateIso) {
+  const d = new Date(dateIso);
+  const dayKey = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][d.getDay()];
+
+  let hours = DEFAULT_OPERATING_HOURS;
+  if (shop && shop.operatingHoursJson) {
+    try {
+      hours = { ...DEFAULT_OPERATING_HOURS, ...JSON.parse(shop.operatingHoursJson) };
+    } catch (e) {
+      hours = DEFAULT_OPERATING_HOURS;
+    }
+  } else if (shop && shop.operatingHours) {
+    hours = { ...DEFAULT_OPERATING_HOURS, ...shop.operatingHours };
+  }
+
+  const daySchedule = hours[dayKey] || DEFAULT_OPERATING_HOURS[dayKey];
+  if (daySchedule.closed) {
+    return { isClosed: true, morning: [], afternoon: [], evening: [] };
+  }
+
+  const openParts = (daySchedule.open || "09:00").split(":").map(Number);
+  const closeParts = (daySchedule.close || "22:00").split(":").map(Number);
+  const openMinutes = openParts[0] * 60 + openParts[1];
+  const closeMinutes = closeParts[0] * 60 + closeParts[1];
+
+  const morning = [];
+  const afternoon = [];
+  const evening = [];
+
+  for (let m = openMinutes; m < closeMinutes; m += 30) {
+    const hours24 = Math.floor(m / 60);
+    const mins = m % 60;
+
+    const period = hours24 >= 12 ? "PM" : "AM";
+    const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+    const timeFormatted = `${String(hours12).padStart(2, "0")}:${String(mins).padStart(2, "0")} ${period}`;
+
+    const slotObj = { time: timeFormatted, minutes: m };
+
+    if (m < 12 * 60) {
+      morning.push(slotObj);
+    } else if (m < 17 * 60) {
+      afternoon.push(slotObj);
+    } else {
+      evening.push(slotObj);
+    }
+  }
+
+  return { isClosed: false, morning, afternoon, evening };
+}
+
+function isSlotUnavailable(slotTime, selectedDate, selectedBarber, existingBookings) {
+  const todayIso = getTodayFormatted();
+  if (selectedDate === todayIso) {
+    const [t, p] = slotTime.split(" ");
+    let [hh, mm] = t.split(":").map(Number);
+    if (p === "PM" && hh < 12) hh += 12;
+    if (p === "AM" && hh === 12) hh = 0;
+
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const slotMins = hh * 60 + mm;
+
+    if (slotMins <= currentMins) return true;
+  }
+
+  if (selectedBarber && selectedBarber.id !== "any") {
+    return existingBookings.some(b =>
+      b.date === selectedDate &&
+      b.time === slotTime &&
+      (b.barber === selectedBarber.name || String(b.barberId) === String(selectedBarber.id))
+    );
+  }
+
+  if (BARBERS.length > 0) {
+    const bookedCount = existingBookings.filter(b => b.date === selectedDate && b.time === slotTime).length;
+    return bookedCount >= BARBERS.length;
+  }
+
+  return false;
+}
+
+// ==========================================
+// 12. 5-MINUTE CONCURRENCY HOLD TIMER
+// ==========================================
+function startConcurrencyHoldTimer() {
   STATE.timerSeconds = 300;
-  const timerContainer = document.getElementById("hold-timer-container");
-  const timerBarContainer = document.getElementById("timer-bar-container");
+  const container = document.getElementById("hold-timer-container");
+  const barContainer = document.getElementById("timer-bar-container");
   const timerDisplay = document.getElementById("timer-display");
   const timerProgress = document.getElementById("timer-progress");
 
-  timerContainer.classList.remove("hidden");
-  timerContainer.classList.add("flex");
-  timerBarContainer.classList.remove("hidden");
+  container?.classList.remove("hidden");
+  container?.classList.add("flex");
+  barContainer?.classList.remove("hidden");
 
   clearInterval(STATE.timerInterval);
   STATE.timerInterval = setInterval(() => {
     STATE.timerSeconds--;
     if (STATE.timerSeconds <= 0) {
       clearInterval(STATE.timerInterval);
-      alert("Your 5-minute slot hold has expired. Please select a slot again.");
+      alert("Your 5-minute temporary slot reservation has expired. Please choose a slot to proceed.");
+      STATE.selectedSlot = null;
       STATE.step = 3;
-      renderStep();
+      renderApp();
       return;
     }
 
     const m = Math.floor(STATE.timerSeconds / 60);
     const s = STATE.timerSeconds % 60;
-    timerDisplay.innerText = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    if (timerDisplay) {
+      timerDisplay.innerText = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
 
-    const percent = (STATE.timerSeconds / 300) * 100;
-    timerProgress.style.width = `${percent}%`;
+    if (timerProgress) {
+      const pct = (STATE.timerSeconds / 300) * 100;
+      timerProgress.style.width = `${pct}%`;
+    }
   }, 1000);
 }
 
-/* ---------------- ICS & QR ACTIONS ---------------- */
-function downloadIcs() {
-  const icsData = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//BarberApp//NONSGML Booking//EN
-BEGIN:VEVENT
-UID:booking-${Date.now()}@barberapp.sa
-DTSTAMP:20260917T210000Z
-DTSTART:20261015T140000Z
-DTEND:20261015T143000Z
-SUMMARY:${STATE.selectedService.name} with ${STATE.selectedBarber.name}
-DESCRIPTION:Appointment at ${STATE.shop?.name}. Service: ${STATE.selectedService.name}
-LOCATION:${STATE.shop?.fullAddress || "Riyadh"}
-STATUS:CONFIRMED
-END:VEVENT
-END:VCALENDAR`;
+// ==========================================
+// 13. CALENDAR GENERATION UTILITIES
+// ==========================================
+function convertSlotToIso(dateStr, timeStr) {
+  try {
+    const [t, p] = timeStr.split(" ");
+    let [hh, mm] = t.split(":").map(Number);
+    if (p === "PM" && hh < 12) hh += 12;
+    if (p === "AM" && hh === 12) hh = 0;
 
-  const blob = new Blob([icsData], { type: "text/calendar;charset=utf-8" });
+    return `${dateStr}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00Z`;
+  } catch {
+    return `${dateStr}T12:00:00Z`;
+  }
+}
+
+function formatIcsTimestamp(isoStr) {
+  const d = new Date(isoStr);
+  return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+}
+
+function downloadIcsCalendarFile({ bookingRef, shopName, barberName, serviceNames, startIso, endIso, address, salonPhone, notes }) {
+  const dtStart = formatIcsTimestamp(startIso);
+  const dtEnd = formatIcsTimestamp(endIso);
+  const dtStamp = formatIcsTimestamp(new Date().toISOString());
+  const uid = `bbr-${bookingRef || Date.now()}@barberapp.sa`;
+
+  const summary = `${serviceNames.join(", ")} - ${shopName}`;
+  const description = [
+    `Appointment Reference: ${bookingRef}`,
+    `Salon: ${shopName}`,
+    `Barber: ${barberName}`,
+    `Services: ${serviceNames.join(", ")}`,
+    notes ? `Customer Notes: ${notes}` : "",
+    `Location: ${address}`,
+    `Cancellation Policy: In case of cancelling or rescheduling, please call customer support or the salon at ${salonPhone || "0501234567"}.`
+  ].filter(Boolean).join("\\n");
+
+  const icsLines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//BarberApp KSA//Mobile Booking Funnel//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "X-WR-TIMEZONE:Asia/Riyadh",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${summary.replace(/,/g, "\\,")}`,
+    `DESCRIPTION:${description}`,
+    `LOCATION:${address.replace(/,/g, "\\,")}`,
+    "STATUS:CONFIRMED",
+    "BEGIN:VALARM",
+    "TRIGGER:-PT1H",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:Reminder: Appointment at ${shopName} in 1 hour! To cancel call ${salonPhone || "0501234567"}.`,
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ];
+
+  const blob = new Blob([icsLines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `appointment-${STATE.shopSlug}.ics`;
+  a.download = `appointment-${bookingRef || "barber"}.ics`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
-function downloadQr() {
-  const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#0B0F17"/><text x="50%" y="50%" fill="#F59E0B" font-size="14" text-anchor="middle" dominant-baseline="middle">ENTRY QR: ${STATE.shopSlug}</text></svg>`;
-  const blob = new Blob([svgData], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `shop-qr-${STATE.shopSlug}.svg`;
-  a.click();
+function getGoogleCalendarWebUrl({ bookingRef, shopName, barberName, serviceNames, startIso, endIso, address, salonPhone, notes }) {
+  const dtStart = formatIcsTimestamp(startIso);
+  const dtEnd = formatIcsTimestamp(endIso);
+
+  const title = encodeURIComponent(`${serviceNames.join(", ")} - ${shopName}`);
+  const details = encodeURIComponent([
+    `Appointment Reference: ${bookingRef}`,
+    `Salon: ${shopName}`,
+    `Barber: ${barberName}`,
+    `Services: ${serviceNames.join(", ")}`,
+    notes ? `Notes: ${notes}` : "",
+    `Cancellation Policy: In case of cancelling or modifying, please call customer support or the salon at ${salonPhone || "0501234567"}.`
+  ].filter(Boolean).join("\n"));
+
+  const location = encodeURIComponent(address || "Saudi Arabia");
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dtStart}/${dtEnd}&details=${details}&location=${location}&ctz=Asia/Riyadh`;
 }
 
+// ==========================================
+// 14. STICKY GLOBAL CTA FOOTER BAR & NAVIGATION (ALL RESOLUTIONS)
+// ==========================================
+function renderStickyMobileCta() {
+  let ctaBar = document.getElementById("sticky-mobile-cta");
+  if (!ctaBar) {
+    ctaBar = document.createElement("div");
+    ctaBar.id = "sticky-mobile-cta";
+    ctaBar.className = "fixed bottom-0 left-0 right-0 z-40 bg-[#0B0F17]/95 backdrop-blur-lg border-t border-slate-800/80 px-4 py-3 sm:py-3.5 transition-transform duration-300 shadow-2xl shadow-black";
+    document.body.appendChild(ctaBar);
+  }
+
+  // Hide CTA on Step 0 (Hero has its own direct button) and Step 5 (Confirmation has its own actions)
+  if (STATE.step === 0 || STATE.step === 5) {
+    ctaBar.classList.add("translate-y-full");
+    return;
+  }
+  ctaBar.classList.remove("translate-y-full");
+
+  const totalDuration = STATE.selectedServices.reduce((sum, s) => sum + (s.duration || 30) + (s.buffer || 0), 0);
+  const totalPrice = STATE.selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+
+  let nextDisabled = false;
+  let nextLabel = "Continue →";
+  let targetStep = STATE.step + 1;
+
+  if (STATE.step === 1) {
+    nextDisabled = STATE.selectedServices.length === 0;
+    nextLabel = nextDisabled ? "Select a Service" : `Continue (${STATE.selectedServices.length} Selected) →`;
+  } else if (STATE.step === 2) {
+    nextDisabled = !STATE.selectedBarber;
+    nextLabel = nextDisabled ? "Choose Barber" : "Select Date & Slot →";
+  } else if (STATE.step === 3) {
+    nextDisabled = !STATE.selectedSlot;
+    nextLabel = nextDisabled ? "Select Time Slot" : `Hold Slot (${STATE.selectedSlot}) →`;
+  } else if (STATE.step === 4) {
+    nextLabel = "Confirm Appointment";
+  }
+
+  ctaBar.innerHTML = `
+    <div class="flex items-center justify-between gap-4 max-w-4xl mx-auto">
+      <div class="flex items-center gap-3 sm:gap-6">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Total Due</span>
+          <div class="flex items-baseline gap-1.5 sm:gap-2">
+            <span class="text-base sm:text-xl font-black text-[#F59E0B]">${totalPrice} SAR</span>
+            ${totalDuration > 0 ? `<span class="text-[10px] sm:text-xs text-slate-400">(${totalDuration}m)</span>` : ""}
+          </div>
+        </div>
+
+        ${STATE.selectedServices.length > 0 ? `
+          <div class="hidden sm:flex flex-col border-l border-slate-800 pl-4 text-xs">
+            <span class="text-slate-300 font-semibold">${STATE.selectedServices.length} Service${STATE.selectedServices.length > 1 ? "s" : ""} selected</span>
+            <span class="text-slate-500 truncate max-w-[240px]">${STATE.selectedServices.map(s => s.name).join(", ")}</span>
+          </div>
+        ` : ""}
+      </div>
+
+      <button id="sticky-next-btn" ${nextDisabled ? "disabled" : ""} class="min-h-[48px] px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm transition flex items-center justify-center gap-2 ${
+        nextDisabled
+          ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50"
+          : "bg-[#F59E0B] text-slate-950 hover:bg-[#D97706] shadow-lg shadow-[#F59E0B]/20 active:scale-95"
+      }">
+        <span>${nextLabel}</span>
+      </button>
+    </div>
+  `;
+
+  document.getElementById("sticky-next-btn")?.addEventListener("click", () => {
+    if (nextDisabled) return;
+    if (STATE.step === 4) {
+      document.getElementById("customer-funnel-form")?.requestSubmit();
+      return;
+    }
+    STATE.step = targetStep;
+    renderApp();
+  });
+}
+
+function updateHeaderAndTimer() {
+  const titleEl = document.getElementById("shop-title");
+  if (titleEl && STATE.shop) {
+    titleEl.innerText = STATE.shop.name.toUpperCase();
+  }
+}
+
+function updateStepperNav() {
+  document.querySelectorAll(".step-nav-item").forEach((item) => {
+    const s = parseInt(item.getAttribute("data-step"));
+    const icon = item.querySelector(".step-icon");
+    const label = item.querySelector(".step-label");
+
+    if (s === STATE.step) {
+      icon.className = "step-icon w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[11px] sm:text-xs bg-[#F59E0B] text-slate-950 ring-2 sm:ring-4 ring-[#F59E0B]/30 mx-auto transition-all";
+      icon.innerHTML = s;
+      if (label) label.className = "step-label text-[9px] sm:text-xs font-bold text-[#F59E0B] block text-center mt-1 truncate";
+    } else if (s < STATE.step) {
+      icon.className = "step-icon w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[11px] sm:text-xs bg-emerald-500 text-white mx-auto transition-all";
+      icon.innerHTML = "✓";
+      if (label) label.className = "step-label text-[9px] sm:text-xs font-semibold text-slate-300 block text-center mt-1 truncate";
+    } else {
+      icon.className = "step-icon w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[11px] sm:text-xs bg-slate-800 text-slate-400 mx-auto transition-all";
+      icon.innerHTML = s;
+      if (label) label.className = "step-label text-[9px] sm:text-xs font-medium text-slate-500 block text-center mt-1 truncate";
+    }
+  });
+
+  const progressBar = document.getElementById("stepper-overall-progress");
+  if (progressBar) {
+    const pct = (STATE.step / 5) * 100;
+    progressBar.style.width = `${pct}%`;
+  }
+}
+
+function getTodayFormatted() {
+  return new Date().toISOString().split("T")[0];
+}

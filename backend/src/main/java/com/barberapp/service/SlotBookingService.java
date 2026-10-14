@@ -25,6 +25,7 @@ public class SlotBookingService {
     private final BarberRepository barberRepository;
     private final ServiceItemRepository serviceItemRepository;
     private final CustomerRepository customerRepository;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public Booking holdSlot(Long shopId, Long barberId, Long serviceId, Long customerId,
@@ -35,18 +36,35 @@ public class SlotBookingService {
         }
 
         try {
-            bookingRepository.findExistingBooking(barberId, slotStart, List.of(BookingStatus.HOLD, BookingStatus.CONFIRMED))
-                    .ifPresent(existing -> {
-                        if (existing.getStatus() == BookingStatus.CONFIRMED ||
-                                (existing.getHoldExpiresAt() != null && existing.getHoldExpiresAt().isAfter(LocalDateTime.now()))) {
-                            throw new SlotAlreadyBookedException("Slot is already booked or held in database");
-                        }
-                    });
-
             Shop shop = shopRepository.findById(shopId)
                     .orElseThrow(() -> new IllegalArgumentException("Shop not found with ID: " + shopId));
             Barber barber = barberRepository.findById(barberId)
                     .orElseThrow(() -> new IllegalArgumentException("Barber not found with ID: " + barberId));
+
+            if (barber.getIsActive() != null && !barber.getIsActive()) {
+                throw new SlotAlreadyBookedException("Barber is currently inactive and cannot receive new bookings");
+            }
+
+            List<BookingStatus> conflictStatuses = List.of(
+                    BookingStatus.HOLD,
+                    BookingStatus.CONFIRMED,
+                    BookingStatus.ARRIVED,
+                    BookingStatus.IN_SERVICE,
+                    BookingStatus.WALK_IN_RESERVED,
+                    BookingStatus.BLOCKED
+            );
+
+            List<Booking> conflicts = bookingRepository.findConflictingBookings(shopId, barberId, slotStart, slotEnd, conflictStatuses, null);
+            for (Booking conflict : conflicts) {
+                if (conflict.getStatus() == BookingStatus.HOLD) {
+                    if (conflict.getHoldExpiresAt() != null && conflict.getHoldExpiresAt().isAfter(LocalDateTime.now())) {
+                        throw new SlotAlreadyBookedException("Slot is currently held by another customer");
+                    }
+                } else {
+                    throw new SlotAlreadyBookedException("Slot is already booked or blocked by staff");
+                }
+            }
+
             ServiceItem service = serviceItemRepository.findById(serviceId)
                     .orElseThrow(() -> new IllegalArgumentException("Service not found with ID: " + serviceId));
             Customer customer = customerRepository.findById(customerId)
@@ -95,6 +113,161 @@ public class SlotBookingService {
         }
 
         booking.setStatus(BookingStatus.CONFIRMED);
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+
+        try {
+            String customerName = saved.getCustomer() != null ? saved.getCustomer().getFullName() : "Customer";
+            String customerPhone = saved.getCustomer() != null ? saved.getCustomer().getPhone() : "";
+            String barberName = saved.getBarber() != null ? saved.getBarber().getName() : "Barber";
+            String serviceName = saved.getService() != null ? saved.getService().getName() : "Service";
+            auditLogService.logEvent(
+                    null,
+                    saved.getShop(),
+                    "BOOKING_CONFIRMED",
+                    String.format("Appointment booked: Customer %s (%s) with %s for %s on %s at %s",
+                            customerName, customerPhone, barberName, serviceName,
+                            saved.getSlotStart() != null ? saved.getSlotStart().toLocalDate() : "",
+                            saved.getSlotStart() != null ? saved.getSlotStart().toLocalTime() : ""),
+                    "127.0.0.1"
+            );
+        } catch (Exception ex) {
+            log.warn("Failed to record audit log for confirmed booking: {}", ex.getMessage());
+        }
+
+        return saved;
+    }
+
+    @Transactional
+    public Booking createPublicBooking(
+            Long shopId,
+            String shopSlug,
+            Long barberId,
+            String barberName,
+            Long serviceId,
+            String serviceName,
+            String customerName,
+            String customerPhone,
+            String customerEmail,
+            LocalDateTime slotStart,
+            LocalDateTime slotEnd,
+            String notes) {
+
+        // 1. Resolve Shop
+        Shop shop = null;
+        if (shopId != null) {
+            shop = shopRepository.findById(shopId).orElse(null);
+        }
+        if (shop == null && shopSlug != null && !shopSlug.isBlank()) {
+            shop = shopRepository.findBySlug(shopSlug.trim()).orElse(null);
+        }
+        if (shop == null) {
+            shop = shopRepository.findAll().stream().findFirst().orElse(null);
+        }
+        if (shop == null) {
+            throw new IllegalArgumentException("No shop found to attach booking.");
+        }
+
+        // 2. Resolve Barber
+        Barber barber = null;
+        if (barberId != null) {
+            barber = barberRepository.findById(barberId).orElse(null);
+        }
+        if (barber == null && barberName != null && !barberName.isBlank()) {
+            String bNameLower = barberName.trim().toLowerCase();
+            barber = barberRepository.findByShopId(shop.getId()).stream()
+                    .filter(b -> b.getName() != null && b.getName().toLowerCase().contains(bNameLower))
+                    .findFirst().orElse(null);
+        }
+        if (barber == null) {
+            String createdName = (barberName != null && !barberName.isBlank()) ? barberName.trim() : "Master Barber";
+            barber = barberRepository.save(Barber.builder()
+                    .shop(shop)
+                    .name(createdName)
+                    .specialty("Master Barber")
+                    .status("ACTIVE")
+                    .isActive(true)
+                    .skills("Haircut, Beard Trim, Hot Towel")
+                    .build());
+        }
+
+        // 3. Resolve Service
+        ServiceItem service = null;
+        if (serviceId != null) {
+            service = serviceItemRepository.findById(serviceId).orElse(null);
+        }
+        if (service == null && serviceName != null && !serviceName.isBlank()) {
+            String sNameLower = serviceName.trim().toLowerCase();
+            service = serviceItemRepository.findByShopId(shop.getId()).stream()
+                    .filter(s -> s.getName() != null && (s.getName().toLowerCase().contains(sNameLower) || sNameLower.contains(s.getName().toLowerCase())))
+                    .findFirst().orElse(null);
+        }
+        if (service == null) {
+            service = serviceItemRepository.findByShopId(shop.getId()).stream().findFirst().orElse(null);
+        }
+        if (service == null) {
+            String createdServiceName = (serviceName != null && !serviceName.isBlank()) ? serviceName.trim() : "Classic Haircut";
+            service = serviceItemRepository.save(ServiceItem.builder()
+                    .shop(shop)
+                    .name(createdServiceName)
+                    .price(new java.math.BigDecimal("50.00"))
+                    .durationMinutes(30)
+                    .bufferMinutes(5)
+                    .category("General")
+                    .isVisible(true)
+                    .assignedStaffIds("ALL")
+                    .build());
+        }
+
+        // 4. Resolve or create Customer
+        String phoneClean = (customerPhone != null && !customerPhone.isBlank()) ? customerPhone.trim() : "0500000000";
+        Customer customer = customerRepository.findByPhone(phoneClean).orElse(null);
+        if (customer == null) {
+            String cName = (customerName != null && !customerName.isBlank()) ? customerName.trim() : "Customer Guest";
+            String cEmail = (customerEmail != null && !customerEmail.isBlank()) ? customerEmail.trim() : (phoneClean + "@guest.barberapp.sa");
+            customer = Customer.builder()
+                    .fullName(cName)
+                    .phone(phoneClean)
+                    .email(cEmail)
+                    .build();
+            customer = customerRepository.save(customer);
+        }
+
+        // 5. Calculate slotEnd if null
+        LocalDateTime start = (slotStart != null) ? slotStart : LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0);
+        int duration = (service != null && service.getDurationMinutes() != null) ? service.getDurationMinutes() : 30;
+        LocalDateTime end = (slotEnd != null) ? slotEnd : start.plusMinutes(duration);
+
+        // 6. Build and save Booking with CONFIRMED status
+        Booking booking = Booking.builder()
+                .shop(shop)
+                .barber(barber)
+                .service(service)
+                .customer(customer)
+                .slotStart(start)
+                .slotEnd(end)
+                .status(BookingStatus.CONFIRMED)
+                .notes(notes)
+                .build();
+
+        Booking saved = bookingRepository.save(booking);
+
+        // 7. Audit log
+        try {
+            auditLogService.logEvent(
+                    null,
+                    shop,
+                    "CUSTOMER_BOOKING_CONFIRMED",
+                    String.format("Public booking confirmed: Customer %s (%s) with %s on %s at %s. Services: [%s]. Notes: %s",
+                            customer.getFullName(), customer.getPhone(), barber.getName(),
+                            saved.getSlotStart().toLocalDate(), saved.getSlotStart().toLocalTime(),
+                            service != null ? service.getName() : "Custom",
+                            notes != null ? notes : "None"),
+                    "127.0.0.1"
+            );
+        } catch (Exception ex) {
+            log.warn("Failed to record audit log for public customer booking: {}", ex.getMessage());
+        }
+
+        return saved;
     }
 }

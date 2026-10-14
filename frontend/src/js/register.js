@@ -3,13 +3,16 @@
  */
 
 import { Store } from "./store.js";
+import { QrHelper } from "./qr-helper.js";
 
 const SAUDI_PHONE_REGEX = /^05[0-9]{8}$/;
 
+export const DEFAULT_BARBER_AVATAR = "./src/images/default-avatar.svg";
+
 let UPLOADED_PHOTOS = [];
 let BARBERS = [
-  { id: 1, name: "Master Barber Ahmed", photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" },
-  { id: 2, name: "Sami Al-Otaibi", photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }
+  { id: 1, name: "Master Barber Ahmed", photoUrl: "" },
+  { id: 2, name: "Sami Al-Otaibi", photoUrl: "" }
 ];
 
 let SERVICES = [
@@ -142,24 +145,80 @@ function readFileAsDataURL(file) {
 /* ---------------- DYNAMIC BARBERS MANAGEMENT ---------------- */
 function renderBarbersList() {
   const container = document.getElementById("barbers-list-container");
-  container.innerHTML = BARBERS.map((barber, idx) => `
-    <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center justify-between gap-3">
-      <div class="flex items-center gap-3 flex-1">
-        <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-xs text-[#F59E0B] border border-[#F59E0B]/30">
-          ✂️
+  container.innerHTML = BARBERS.map((barber, idx) => {
+    const avatarSrc = (barber.photoUrl && !barber.photoUrl.includes("unsplash.com")) ? barber.photoUrl : DEFAULT_BARBER_AVATAR;
+    const hasCustomPhoto = Boolean(barber.photoUrl && !barber.photoUrl.includes("unsplash.com"));
+
+    return `
+      <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3 flex-1">
+          <!-- Avatar Preview & Upload Trigger -->
+          <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-[#F59E0B]/40 bg-slate-950 relative group cursor-pointer shadow-md flex items-center justify-center" title="Click to upload barber photo">
+            <img src="${avatarSrc}" alt="${barber.name}" onerror="this.onerror=null;this.src='./src/images/default-avatar.svg';" class="w-full h-full object-cover" />
+            <label class="absolute inset-0 rounded-full bg-slate-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] text-white font-bold cursor-pointer transition">
+              📷
+              <input type="file" accept="image/*" data-idx="${idx}" class="barber-photo-input hidden" />
+            </label>
+          </div>
+
+          <!-- Name & Upload Photo Button -->
+          <div class="flex-1 space-y-1">
+            <input type="text" value="${barber.name}" data-idx="${idx}" class="barber-name-input w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F59E0B]" placeholder="Barber Full Name" />
+            <div class="flex items-center gap-2 text-[10px]">
+              <label class="text-[#F59E0B] hover:underline cursor-pointer flex items-center gap-1 font-semibold">
+                <span>📷 ${hasCustomPhoto ? "Change Photo" : "Upload Photo (Optional)"}</span>
+                <input type="file" accept="image/*" data-idx="${idx}" class="barber-photo-input hidden" />
+              </label>
+              ${hasCustomPhoto ? `
+                <button type="button" data-idx="${idx}" class="remove-barber-photo-btn text-red-400 hover:underline">
+                  ✕ Remove Photo
+                </button>
+              ` : `
+                <span class="text-slate-500 font-mono">Default avatar</span>
+              `}
+            </div>
+          </div>
         </div>
-        <input type="text" value="${barber.name}" data-idx="${idx}" class="barber-name-input w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#F59E0B]" placeholder="Barber Full Name" />
+
+        <button type="button" data-idx="${idx}" class="remove-barber-btn px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white font-bold text-xs rounded-xl transition self-end sm:self-center">
+          Remove
+        </button>
       </div>
-      <button type="button" data-idx="${idx}" class="remove-barber-btn px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white font-bold text-xs rounded-xl transition">
-        Remove
-      </button>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 
   container.querySelectorAll(".barber-name-input").forEach((input) => {
     input.addEventListener("input", (e) => {
       const idx = parseInt(input.getAttribute("data-idx"));
       BARBERS[idx].name = e.target.value;
+    });
+  });
+
+  // Handle photo upload per barber
+  container.querySelectorAll(".barber-photo-input").forEach((input) => {
+    input.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const idx = parseInt(input.getAttribute("data-idx"));
+      try {
+        const compressed = await compressImage(file, 400, 0.8);
+        const dataUrl = await readFileAsDataURL(compressed);
+        BARBERS[idx].photoUrl = dataUrl;
+        BARBERS[idx].avatar = dataUrl;
+        renderBarbersList();
+      } catch (err) {
+        console.error("Error uploading barber photo:", err);
+      }
+    });
+  });
+
+  // Handle remove photo per barber
+  container.querySelectorAll(".remove-barber-photo-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.getAttribute("data-idx"));
+      BARBERS[idx].photoUrl = "";
+      BARBERS[idx].avatar = "";
+      renderBarbersList();
     });
   });
 
@@ -173,7 +232,7 @@ function renderBarbersList() {
 }
 
 document.getElementById("add-barber-btn")?.addEventListener("click", () => {
-  BARBERS.push({ id: Date.now(), name: `Barber ${BARBERS.length + 1}` });
+  BARBERS.push({ id: Date.now(), name: `Barber ${BARBERS.length + 1}`, photoUrl: "" });
   renderBarbersList();
 });
 
@@ -241,35 +300,71 @@ document.getElementById("add-service-btn")?.addEventListener("click", () => {
 function initFormSubmission() {
   const form = document.getElementById("onboarding-form");
   const phoneInput = document.getElementById("phone");
+  const phoneErr = document.getElementById("phone-err");
+  const modal = document.getElementById("success-modal");
+  const publicLink = document.getElementById("public-link");
+  const bookingBtn = document.getElementById("booking-btn");
+
+  // Radio card interactive selection styling for Payment Method
+  document.querySelectorAll('input[name="paymentMethod"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      document.querySelectorAll(".pay-method-card").forEach((card) => {
+        card.classList.remove("border-[#F59E0B]", "bg-[#F59E0B]/10");
+        card.classList.add("border-slate-800", "bg-slate-900/60");
+      });
+      const selected = radio.closest(".pay-method-card");
+      if (selected) {
+        selected.classList.remove("border-slate-800", "bg-slate-900/60");
+        selected.classList.add("border-[#F59E0B]", "bg-[#F59E0B]/10");
+      }
+    });
+  });
+
+  // Radio card interactive selection styling for Subscription Plan
+  document.querySelectorAll('input[name="subscriptionPlan"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      document.querySelectorAll(".plan-card").forEach((card) => {
+        card.classList.remove("border-[#F59E0B]", "bg-[#F59E0B]/10");
+        card.classList.add("border-slate-800", "bg-slate-900/60");
+      });
+      const selected = radio.closest(".plan-card");
+      if (selected) {
+        selected.classList.remove("border-slate-800", "bg-slate-900/60");
+        selected.classList.add("border-[#F59E0B]", "bg-[#F59E0B]/10");
+      }
+    });
+  });
+
   phoneInput?.addEventListener("input", (e) => {
     let val = e.target.value.replace(/\s+/g, "");
     if (val.startsWith("+966")) val = "0" + val.slice(4);
     else if (val.startsWith("00966")) val = "0" + val.slice(5);
     else if (val.startsWith("966") && val.length > 9) val = "0" + val.slice(3);
     e.target.value = val;
-    phoneErr.classList.add("hidden");
+    if (phoneErr) phoneErr.classList.add("hidden");
   });
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const phone = phoneInput.value.trim();
+    const phone = phoneInput ? phoneInput.value.trim() : "";
     if (!SAUDI_PHONE_REGEX.test(phone)) {
-      phoneErr.classList.remove("hidden");
-      phoneInput.focus();
+      if (phoneErr) phoneErr.classList.remove("hidden");
+      phoneInput?.focus();
       return;
     }
-    phoneErr.classList.add("hidden");
+    if (phoneErr) phoneErr.classList.add("hidden");
 
-    const ownerFullName = document.getElementById("ownerFullName").value.trim();
-    const ownerEmail = document.getElementById("ownerEmail").value.trim();
-    const shopName = document.getElementById("shopName").value.trim();
-    const region = document.getElementById("region").value.trim();
-    const district = document.getElementById("district").value.trim();
-    const city = document.getElementById("city").value.trim();
-    const fullAddress = document.getElementById("fullAddress").value.trim();
-    const mapAddress = document.getElementById("mapAddress").value.trim();
+    const ownerFullName = document.getElementById("ownerFullName")?.value.trim() || "";
+    const ownerEmail = document.getElementById("ownerEmail")?.value.trim() || "";
+    const shopName = document.getElementById("shopName")?.value.trim() || "";
+    const region = document.getElementById("region")?.value.trim() || "";
+    const district = document.getElementById("district")?.value.trim() || "";
+    const city = document.getElementById("city")?.value.trim() || "";
+    const fullAddress = document.getElementById("fullAddress")?.value.trim() || "";
+    const mapAddress = document.getElementById("mapAddress")?.value.trim() || "";
     const subscriptionPlan = document.querySelector('input[name="subscriptionPlan"]:checked')?.value || "MONTHLY";
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || "CASH";
 
     const slug = shopName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") || "golden-scissors";
 
@@ -288,13 +383,15 @@ function initFormSubmission() {
       mapAddress,
       photos: UPLOADED_PHOTOS,
       plan: subscriptionPlan,
+      paymentMethod,
       status: "ACTIVE",
       registeredAt: new Date().toISOString().replace("T", " ").substring(0, 19),
       barbers: BARBERS.map((b, i) => ({
         id: b.id || (i + 1),
         name: b.name,
         rating: 5.0,
-        avatar: b.photoUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+        avatar: (b.photoUrl && !b.photoUrl.includes("unsplash.com")) ? b.photoUrl : "",
+        photoUrl: (b.photoUrl && !b.photoUrl.includes("unsplash.com")) ? b.photoUrl : ""
       })),
       services: SERVICES.map((s, i) => ({
         id: s.id || (101 + i),
@@ -305,33 +402,161 @@ function initFormSubmission() {
       }))
     };
 
-    // Save to central reactive store
-    Store.saveShop(newShop);
+    // URLs
+    const origin = window.location.origin || "http://localhost:3000";
+    const loginUrl = `${origin}/dashboard/index.html?slug=${slug}`;
+    const bookingUrl = `${origin}/booking.html?slug=${slug}`;
 
-    // Optional fetch call to backend API if live
+    newShop.loginUrl = loginUrl;
+    newShop.bookingUrl = bookingUrl;
+
+    // Record subscription payment in central store
+    Store.addPayment({
+      salonName: shopName,
+      salonSlug: slug,
+      amount: subscriptionPlan === "YEARLY" ? 200 : 20,
+      currency: "SAR",
+      plan: subscriptionPlan,
+      provider: paymentMethod === "CASH" ? "Cash" : "STC Pay",
+      status: "COMPLETED"
+    });
+
+    // Send to backend API
+    let registeredShopId = null;
     try {
-      await fetch("/api/shops/register", {
+      const ownerPassword = document.getElementById("ownerPassword")?.value.trim() || "Owner123!";
+      const backendPayload = {
+        ownerFullName,
+        ownerEmail,
+        ownerPassword,
+        shopName,
+        phone,
+        region,
+        district,
+        city,
+        fullAddress,
+        mapAddress,
+        subscriptionPlan
+      };
+      const response = await fetch("http://localhost:8080/api/shops/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newShop)
+        body: JSON.stringify(backendPayload)
       });
+      if (response.ok) {
+        const backendShop = await response.json();
+        registeredShopId = backendShop.id;
+        newShop.id = backendShop.id;
+      }
     } catch {
-      console.log("Backend offline, shop saved to client store successfully.");
+      console.log("Backend offline or registration saved to client store successfully.");
     }
 
-    const bookingUrl = `${window.location.origin}/book.html?slug=${slug}`;
-    publicLink.innerText = bookingUrl;
-    publicLink.href = bookingUrl;
-    bookingBtn.href = bookingUrl;
+    // Render Dual QR Codes into Success Modal
+    const loginQrRes = await QrHelper.renderQr("#modal-login-qr-container", loginUrl, 160);
+    const bookingQrRes = await QrHelper.renderQr("#modal-booking-qr-container", bookingUrl, 160);
 
-    const scheduleBtn = modal.querySelector('a[href="./dashboard/index.html"]');
-    if (scheduleBtn) {
-      scheduleBtn.href = `./dashboard/index.html?slug=${slug}`;
+    newShop.loginQrCodeData = loginQrRes?.pngDataUrl;
+    newShop.bookingQrCodeData = bookingQrRes?.pngDataUrl;
+    newShop.loginQrSvg = loginQrRes?.svgString;
+    newShop.bookingQrSvg = bookingQrRes?.svgString;
+
+    // Save to central reactive store with QR persistence
+    Store.saveShop(newShop);
+
+    // Update Modal Note
+    const modalPaymentNote = document.getElementById("modal-payment-note");
+    if (modalPaymentNote) {
+      modalPaymentNote.innerText = `Payment Method: ${paymentMethod === "CASH" ? "Pay by Cash" : "Via STC Pay"} • Status: ACTIVE • QR Codes Generated`;
     }
 
-    // Show Success Modal
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
+    // Populate Readable Links Text
+    const loginLinkTextEl = document.getElementById("modal-login-link-text");
+    if (loginLinkTextEl) loginLinkTextEl.innerText = loginUrl;
+
+    const bookingLinkTextEl = document.getElementById("modal-booking-link-text");
+    if (bookingLinkTextEl) bookingLinkTextEl.innerText = bookingUrl;
+
+    // Wire Copy buttons
+    document.getElementById("copy-login-link-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      QrHelper.copyText(loginUrl, e.currentTarget);
+    });
+
+    document.getElementById("copy-booking-link-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      QrHelper.copyText(bookingUrl, e.currentTarget);
+    });
+
+    // Wire Download Individual PNG/SVG buttons
+    document.getElementById("download-login-png-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      QrHelper.downloadPng(loginQrRes?.pngDataUrl, `${slug}-login-qr.png`);
+    });
+
+    document.getElementById("download-login-svg-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      QrHelper.downloadSvg(loginQrRes?.svgString, `${slug}-login-qr.svg`);
+    });
+
+    document.getElementById("download-booking-png-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      QrHelper.downloadPng(bookingQrRes?.pngDataUrl, `${slug}-booking-qr.png`);
+    });
+
+    document.getElementById("download-booking-svg-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      QrHelper.downloadSvg(bookingQrRes?.svgString, `${slug}-booking-qr.svg`);
+    });
+
+    // Wire Bulk Download ZIP button
+    document.getElementById("download-both-zip-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      QrHelper.downloadZip({
+        filename: `${slug}-qr-codes.zip`,
+        shopName,
+        slug,
+        loginUrl,
+        bookingUrl,
+        loginPng: loginQrRes?.pngDataUrl,
+        bookingPng: bookingQrRes?.pngDataUrl,
+        loginSvg: loginQrRes?.svgString,
+        bookingSvg: bookingQrRes?.svgString,
+        shopId: registeredShopId
+      });
+    });
+
+    // Wire Download Links (.txt) button
+    document.getElementById("download-links-txt-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      const txtContent = `=====================================================
+Salon Name: ${shopName}
+Salon Slug: ${slug}
+Registered At: ${new Date().toISOString()}
+=====================================================
+
+1. PRIVATE SALON LOGIN & DASHBOARD LINK:
+${loginUrl}
+
+2. PUBLIC CUSTOMER BOOKING LINK:
+${bookingUrl}
+
+Barber SaaS Platform • Saudi Arabia & GCC
+`;
+      QrHelper.downloadText(txtContent, `${slug}-links.txt`);
+    });
+
+    // Navigation buttons
+    const visitBookingBtn = document.getElementById("modal-visit-booking-btn");
+    if (visitBookingBtn) visitBookingBtn.href = bookingUrl;
+
+    const openScheduleBtn = document.getElementById("modal-open-schedule-btn");
+    if (openScheduleBtn) openScheduleBtn.href = loginUrl;
+
+    if (modal) {
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
   });
 }
 

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salon Portal | BarberApp KSA</title>
+  <link rel="icon" type="image/svg+xml" href="../src/images/favicon.svg" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
+            luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981', cyan: '#38BDF8', purple: '#A855F7' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../src/css/output.css" />
+</head>
+<body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 flex flex-col">
+
+  <!-- Toast Notification Alert Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Common Shell: Top Shop Header -->
+  <header class="sticky top-0 z-40 bg-[#0B0F17]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+    <!-- Brand & Shop Context -->
+    <div class="flex items-center gap-3 md:gap-5 min-w-0">
+      <!-- Mobile Menu Toggle -->
+      <button id="mobile-menu-toggle" class="lg:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white" aria-label="Toggle Navigation">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <!-- Shop Identity Emblem -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/30 flex items-center justify-center text-xl shrink-0 shadow-inner">
+          💈
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 id="header-salon-name" class="text-base sm:text-lg font-extrabold text-white tracking-tight truncate">
+              Golden Scissors Salon
+            </h1>
+            <span class="text-emerald-400 text-xs shrink-0" title="Verified Saudi Commercial Establishment">✓</span>
+          </div>
+          <div class="flex items-center gap-2 mt-0.5">
+            <!-- Active Branch Badge -->
+            <span id="header-branch-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-1">
+              <span>📍</span>
+              <span id="header-branch-text">Olaya, Riyadh</span>
+            </span>
+
+            <!-- Role Indicator Pill -->
+            <span id="header-role-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/30">
+              <span id="header-role-icon">👑</span>
+              <span id="header-role-text">SALON_OWNER</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Controls: Shift Toggle & Profile / Sign Out -->
+    <div class="flex items-center gap-3 shrink-0">
+      <!-- Staff Shift Toggle (Online / Offline) -->
+      <div class="flex items-center bg-slate-900/90 border border-slate-800 rounded-2xl p-1 shadow-inner">
+        <span class="text-[10px] font-mono text-slate-400 px-2 hidden sm:inline">Shift:</span>
+        <button id="shift-toggle-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30">
+          <span id="shift-indicator-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="shift-status-text">Online</span>
+        </button>
+      </div>
+
+      <!-- User Avatar / Dropdown & Logout -->
+      <div class="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+        <div class="hidden md:flex flex-col text-right">
+          <span id="header-user-name" class="text-xs font-bold text-white truncate max-w-[130px]">Tariq Al-Mansoor</span>
+          <span id="header-user-email" class="text-[10px] font-mono text-slate-400 truncate max-w-[130px]">owner@goldenscissors.sa</span>
+        </div>
+        <div id="header-user-avatar" class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-amber-400 font-bold text-xs flex items-center justify-center shrink-0">
+          TM
+        </div>
+        <button id="header-signout-btn" class="p-2 rounded-xl bg-slate-900/80 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 text-slate-400 hover:text-red-400 text-xs font-bold transition" title="Sign Out">
+          🚪
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Body Content: Sidebar + Workspace -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Role-Based Dynamic Sidebar -->
+    <aside id="portal-sidebar" class="w-64 bg-[#0E131F]/90 backdrop-blur-md border-r border-slate-800 flex flex-col justify-between p-4 fixed lg:static inset-y-0 left-0 z-30 -translate-x-full lg:translate-x-0 transition-transform duration-200">
+      <div class="space-y-6">
+        <!-- Sidebar Navigation Heading -->
+        <div class="px-3 pt-2">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold block">
+            Navigation Modules
+          </span>
+          <span id="sidebar-role-caption" class="text-[11px] text-amber-400/80 font-medium block mt-0.5">
+            Salon Management Console
+          </span>
+        </div>
+
+        <!-- Role-Specific Navigation Menu Links -->
+        <nav id="portal-nav-menu" class="space-y-1.5">
+          <!-- Injected dynamically by portal.js based on SALON_OWNER vs SALON_STAFF -->
+        </nav>
+      </div>
+
+      <!-- Sidebar Footer: Tenant Isolation Anchor Badge -->
+      <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2">
+        <div class="flex items-center justify-between text-[11px]">
+          <span class="text-slate-400 font-mono">Tenant Isolation:</span>
+          <span class="text-emerald-400 font-bold font-mono">ENFORCED</span>
+        </div>
+        <div class="text-[10px] text-slate-500 font-mono leading-tight">
+          Salon ID: <span id="sidebar-salon-id-badge" class="text-amber-400 font-bold">#25</span><br/>
+          Scope: <span id="sidebar-scope-badge" class="text-slate-300">Tenant Unrestricted</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Dynamic Workspace View -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <!-- Dynamic Workspace Injected here by portal.js -->
+      <div id="portal-workspace" class="max-w-7xl mx-auto space-y-6">
+        <!-- Injected View Content -->
+      </div>
+    </main>
+  </div>
+
+  <!-- 1. Quick Walk-in Modal -->
+  <div id="walkin-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-lg space-y-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl text-amber-400">
+            ✂️
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white">New Walk-In Reservation</h3>
+            <p class="text-[11px] text-slate-400">Direct on-site booking with instant slot reservation</p>
+          </div>
+        </div>
+        <button id="close-walkin-modal-btn" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm">✕</button>
+      </div>
+
+      <form id="walkin-form" class="space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Customer Name</label>
+            <input type="text" id="walkin-name" required placeholder="e.g. Fahad Al-Shehri" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Phone Number (KSA +966)</label>
+            <input type="tel" id="walkin-phone" required placeholder="05XXXXXXXX" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Assigned Barber</label>
+            <select id="walkin-barber" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-400">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Selected Service</label>
+            <select id="walkin-service" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-400">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Appointment Date</label>
+            <input type="date" id="walkin-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Appointment Time</label>
+            <input type="time" id="walkin-time" required value="14:00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400" />
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button type="button" id="cancel-walkin-btn" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5">
+            <span>Confirm Walk-In</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Cancel Booking Modal with Predefined Reasons -->
+  <div id="cancel-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-md space-y-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-xl text-red-400">
+            ⚠️
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white">Cancel Appointment</h3>
+            <p class="text-[11px] text-slate-400" id="cancel-modal-subtitle">Appointment #000</p>
+          </div>
+        </div>
+        <button id="close-cancel-modal-btn" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm">✕</button>
+      </div>
+
+      <form id="cancel-form" class="space-y-4 text-xs">
+        <input type="hidden" id="cancel-booking-id" />
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Cancellation Reason</label>
+          <select id="cancel-reason-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-red-400">
+            <option value="Customer Requested Cancellation">Customer Requested Cancellation</option>
+            <option value="Staff Member Unavailable / Emergency">Staff Member Unavailable / Emergency</option>
+            <option value="Salon Maintenance / Power Interruption">Salon Maintenance / Power Interruption</option>
+            <option value="Duplicate / Scheduling Conflict">Duplicate / Scheduling Conflict</option>
+            <option value="Customer No-Show / Late Arrival">Customer No-Show / Late Arrival</option>
+            <option value="Other">Other (Specify below)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Additional Notes (Optional)</label>
+          <textarea id="cancel-notes" rows="3" placeholder="Add specific details for the salon records..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-red-400 resize-none"></textarea>
+        </div>
+
+        <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300 text-[11px] flex items-center gap-2">
+          <span>ℹ️</span>
+          <span>This action will cancel the reservation and free up the barber chair slot.</span>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button type="button" id="abort-cancel-btn" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition">Keep Booking</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold shadow-lg shadow-red-500/20 transition">Confirm Cancellation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Reassign Booking Modal (Owner Only) -->
+  <div id="reassign-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-md space-y-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl text-amber-400">
+            🔄
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white">Reassign Appointment</h3>
+            <p class="text-[11px] text-slate-400" id="reassign-modal-subtitle">Transfer to another active barber</p>
+          </div>
+        </div>
+        <button id="close-reassign-modal-btn" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm">✕</button>
+      </div>
+
+      <form id="reassign-form" class="space-y-4 text-xs">
+        <input type="hidden" id="reassign-booking-id" />
+        <div class="p-3 bg-slate-950 rounded-2xl border border-slate-800 text-slate-300 space-y-1">
+          <div class="text-[10px] text-slate-500 uppercase font-mono font-bold">Current Booking Info</div>
+          <div id="reassign-current-details" class="font-bold text-white">John Doe • 02:00 PM</div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">New Assigned Barber</label>
+          <select id="reassign-barber-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-400">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-[11px] flex items-center gap-2">
+          <span>⚡</span>
+          <span>System verifies availability and prevents chair double-booking automatically.</span>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button type="button" id="abort-reassign-btn" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/20 transition">Reassign Chair</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Block Slot Modal (Owner Only) -->
+  <div id="block-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-md space-y-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-xl text-rose-400">
+            ⛔
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white">Block Time Slot</h3>
+            <p class="text-[11px] text-slate-400">Reserve chair for breaks, deep clean, or salon maintenance</p>
+          </div>
+        </div>
+        <button id="close-block-modal-btn" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm">✕</button>
+      </div>
+
+      <form id="block-form" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Target Barber Chair</label>
+          <select id="block-barber-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-rose-400">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Date</label>
+          <input type="date" id="block-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-rose-400" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Start Time</label>
+            <input type="time" id="block-start-time" required value="12:00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-rose-400" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">End Time</label>
+            <input type="time" id="block-end-time" required value="13:00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-rose-400" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Block Reason</label>
+          <select id="block-reason-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-rose-400">
+            <option value="Staff Lunch Break">Staff Lunch Break</option>
+            <option value="Chair & Tools Deep Sanitization">Chair & Tools Deep Sanitization</option>
+            <option value="Salon Facility Maintenance">Salon Facility Maintenance</option>
+            <option value="Staff Meeting / Training">Staff Meeting / Training</option>
+            <option value="Emergency Temporary Closure">Emergency Temporary Closure</option>
+          </select>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button type="button" id="abort-block-btn" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold shadow-lg shadow-rose-500/20 transition">Block Slot</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="../src/js/portal.js"></script>
+</body>
+</html>

@@ -34,8 +34,18 @@ public class User {
     @Column(nullable = false, length = 50)
     private UserRole role;
 
+    @Column(name = "salon_id")
+    private Long salonId;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
+
     @Column(unique = true, length = 30)
     private String phone;
+
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

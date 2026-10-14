@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Super Admin Control Panel | Barber SaaS</title>
+  <title>BarberApp | Super Admin Control Portal</title>
+  <link rel="icon" type="image/svg+xml" href="../src/images/favicon.svg" />
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -17,6 +18,11 @@
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            arabic: ['IBM Plex Sans Arabic', 'sans-serif']
+          },
           colors: {
             dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
             luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981' }
@@ -27,92 +33,534 @@
   </script>
   <link rel="stylesheet" href="../src/css/output.css" />
 </head>
-<body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 p-6 space-y-10">
+<body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 flex flex-col md:flex-row overflow-x-hidden">
 
-  <!-- Header -->
-  <header>
-    <span class="text-[10px] uppercase tracking-widest text-[#F59E0B] font-bold">Platform Management</span>
-    <h1 class="text-2xl font-extrabold text-white tracking-tight">Super Admin Override & Audit Control</h1>
-  </header>
+  <!-- Mobile Sidebar Backdrop -->
+  <div id="mobile-sidebar-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 hidden md:hidden transition-opacity"></div>
 
-  <!-- Metric Overview Cards -->
-  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-    <div class="backdrop-blur-md bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-[#F59E0B]/40 transition">
-      <span class="text-xs font-semibold text-slate-400">Total Registered Shops</span>
-      <p id="metric-total-shops" class="text-2xl font-extrabold text-white mt-1">0</p>
+  <!-- ======================== COLLAPSIBLE SIDEBAR ======================== -->
+  <aside id="admin-sidebar" class="fixed md:sticky top-0 left-0 h-screen w-64 bg-[#0E131F] border-r border-slate-800/80 z-50 flex flex-col justify-between transition-all duration-300 ease-in-out -translate-x-full md:translate-x-0 shadow-2xl shrink-0">
+    
+    <!-- Sidebar Top: Brand & Navigation -->
+    <div class="flex flex-col h-full overflow-y-auto">
+      <!-- Brand Logo Header -->
+      <div class="p-5 border-b border-slate-800/60 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl flex items-center justify-center text-[#F59E0B] text-xl font-bold shadow-lg shadow-[#F59E0B]/10">
+            🛡️
+          </div>
+          <div class="sidebar-label">
+            <div class="flex items-center gap-2">
+              <h1 class="text-base font-extrabold text-white tracking-tight">BarberApp</h1>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                PRO
+              </span>
+            </div>
+            <p class="text-[10px] text-slate-400 font-mono">Super Admin Console</p>
+          </div>
+        </div>
+        <!-- Mobile close button -->
+        <button id="mobile-sidebar-close" class="md:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800">
+          ✕
+        </button>
+      </div>
+
+      <!-- Super Admin Authority Badge -->
+      <div class="px-5 py-3 border-b border-slate-800/40 bg-slate-900/40 sidebar-label">
+        <div class="flex items-center justify-between text-[11px]">
+          <span class="text-slate-400 font-medium">Role Authority:</span>
+          <span class="font-extrabold text-amber-400 tracking-wider font-mono">SUPER_ADMIN</span>
+        </div>
+      </div>
+
+      <!-- Navigation Menu Items -->
+      <nav class="p-3 space-y-1.5 flex-1">
+        <p class="px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 sidebar-label">
+          Core Workspaces
+        </p>
+
+        <!-- 1. Salon Directory -->
+        <a href="#salons" data-view="salons" class="nav-item flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+          <span class="text-lg">💈</span>
+          <span class="sidebar-label">Salon Directory</span>
+        </a>
+
+        <!-- 2. User Audit (The Target Feature Screen) -->
+        <a href="#audit" data-view="audit" class="nav-item flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+          <span class="text-lg">🔍</span>
+          <div class="flex-1 flex items-center justify-between sidebar-label">
+            <span>User Audit</span>
+            <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold font-mono bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              Live
+            </span>
+          </div>
+        </a>
+
+        <!-- 3. System Configuration -->
+        <a href="#settings" data-view="settings" class="nav-item flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+          <span class="text-lg">⚙️</span>
+          <span class="sidebar-label">System Configuration</span>
+        </a>
+
+        <!-- 4. Access Control -->
+        <a href="#access-control" data-view="access-control" class="nav-item flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 border border-transparent transition-all">
+          <span class="text-lg">🛡️</span>
+          <span class="sidebar-label">Access Control</span>
+        </a>
+
+        <div class="pt-4 border-t border-slate-800/40 my-2"></div>
+        <p class="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 sidebar-label">
+          Quick Links
+        </p>
+
+        <a href="../salons.html" class="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/40 transition">
+          <span>🏛️</span>
+          <span class="sidebar-label">Public Salons Page</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer: Profile Card & Sign Out -->
+      <div class="p-4 border-t border-slate-800/80 bg-slate-900/60">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-9 h-9 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-300 font-bold text-xs shadow-md shrink-0">
+            SA
+          </div>
+          <div class="overflow-hidden sidebar-label flex-1">
+            <p id="shell-user-name" class="text-xs font-bold text-white truncate">Super Administrator</p>
+            <p id="shell-user-email" class="text-[10px] text-slate-400 font-mono truncate">admin@barberapp.sa</p>
+          </div>
+        </div>
+
+        <button id="shell-logout-btn" class="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
+          <span>🚪</span>
+          <span class="sidebar-label">Sign Out</span>
+        </button>
+      </div>
+
     </div>
-    <div class="backdrop-blur-md bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-emerald-500/40 transition">
-      <span class="text-xs font-semibold text-slate-400">Active Subscriptions</span>
-      <p id="metric-active-shops" class="text-2xl font-extrabold text-emerald-400 mt-1">0</p>
-    </div>
-    <div class="backdrop-blur-md bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-[#F59E0B]/40 transition">
-      <span class="text-xs font-semibold text-slate-400">Monthly Recurring Revenue</span>
-      <p id="metric-revenue" class="text-2xl font-extrabold text-[#F59E0B] mt-1">0 SAR</p>
-    </div>
-    <div class="backdrop-blur-md bg-white/5 border border-white/10 p-5 rounded-2xl hover:border-blue-500/40 transition">
-      <span class="text-xs font-semibold text-slate-400">Auto-Approved (30 Days)</span>
-      <p id="metric-approved" class="text-2xl font-extrabold text-blue-400 mt-1">0</p>
-    </div>
+  </aside>
+
+  <!-- ======================== MAIN APP CONTAINER ======================== -->
+  <div class="flex-1 flex flex-col min-w-0 min-h-screen">
+
+    <!-- Sticky Top Navigation Bar -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-[#0B0F17]/80 border-b border-slate-800/80 px-4 md:px-8 py-3.5 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <!-- Mobile hamburger -->
+        <button id="mobile-sidebar-open" class="md:hidden text-slate-300 hover:text-white p-2 rounded-xl bg-slate-800/60 border border-slate-700">
+          ☰
+        </button>
+        <!-- Desktop Sidebar Collapse Toggle -->
+        <button id="sidebar-collapse-toggle" class="hidden md:flex text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800/60 transition" title="Toggle Sidebar Width">
+          ◀▶
+        </button>
+
+        <!-- Dynamic Breadcrumb -->
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-slate-400 font-medium">Super Admin</span>
+          <span class="text-slate-600 font-mono">/</span>
+          <span id="breadcrumb-current-view" class="font-bold text-[#F59E0B]">User Audit</span>
+        </div>
+      </div>
+
+      <!-- Top Right Controls -->
+      <div class="flex items-center gap-3">
+        <!-- Live API Status Indicator -->
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>API: Connected (Port 8080)</span>
+        </div>
+
+        <!-- Quick Refresh Button -->
+        <button id="global-refresh-btn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-sm">
+          <span>🔄</span>
+          <span class="hidden sm:inline">Refresh</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================== DYNAMIC WORKSPACE OUTLET ======================== -->
+    <main id="admin-workspace" class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
+      <!-- The active view (User Audit / Salon Directory / Settings / Access Control) will be mounted here dynamically -->
+    </main>
+
   </div>
 
-  <!-- Section 1: Shop Management & Manual Override -->
-  <section class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <h2 class="text-lg font-bold text-white">Shop Control & Manual Overrides</h2>
-      <input type="text" id="shop-search" placeholder="Search shop name, owner, or phone..." class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2 text-xs w-full sm:w-64 focus:outline-none focus:border-[#F59E0B]" />
-    </div>
-
-    <div class="overflow-x-auto">
-      <table className="w-full text-left text-xs border-collapse">
-        <thead>
-          <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-            <th class="py-3 px-4">Shop Name</th>
-            <th class="py-3 px-4">Owner</th>
-            <th class="py-3 px-4">Phone</th>
-            <th class="py-3 px-4">City</th>
-            <th class="py-3 px-4">Plan</th>
-            <th class="py-3 px-4">Status</th>
-            <th class="py-3 px-4 text-right">Admin Action</th>
-          </tr>
-        </thead>
-        <tbody id="shops-table-body" class="divide-y divide-slate-800/60">
-          <!-- Rendered dynamically by admin.js -->
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- Section 2: Audit Logs -->
-  <section class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-bold text-white">System Audit Log Viewer</h2>
-        <p class="text-xs text-slate-400">Security event tracking and administrative action records</p>
+  <!-- ======================== DETAIL SLIDE-OVER DRAWER ======================== -->
+  <div id="drawer-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <aside id="audit-detail-drawer" class="fixed top-0 right-0 h-full w-full max-w-xl bg-[#0E131F] border-l border-slate-800 z-50 translate-x-full transition-transform duration-300 ease-in-out shadow-2xl flex flex-col">
+    <!-- Drawer Header -->
+    <div class="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+      <div class="flex items-center gap-3">
+        <span class="text-xl">📋</span>
+        <div>
+          <h2 class="text-base font-extrabold text-white">Audit Entry Details</h2>
+          <p id="drawer-subtitle" class="text-xs text-slate-400 font-mono">Log ID: #0</p>
+        </div>
       </div>
-      <button id="export-csv-btn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl border border-slate-700 transition flex items-center gap-2">
-        <span>📥 Export CSV</span>
+      <button id="close-drawer-btn" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm font-bold transition">
+        ✕
       </button>
     </div>
 
-    <div class="overflow-x-auto">
-      <table className="w-full text-left text-xs border-collapse">
-        <thead>
-          <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider">
-            <th class="py-3 px-4">Timestamp</th>
-            <th class="py-3 px-4">User</th>
-            <th class="py-3 px-4">Shop</th>
-            <th class="py-3 px-4">Action</th>
-            <th class="py-3 px-4">Details</th>
-            <th class="py-3 px-4">IP Address</th>
-          </tr>
-        </thead>
-        <tbody id="audit-table-body" class="divide-y divide-slate-800/60">
-          <!-- Rendered dynamically by admin.js -->
-        </tbody>
-      </table>
-    </div>
-  </section>
+    <!-- Drawer Body (Scrollable) -->
+    <div class="p-6 overflow-y-auto flex-1 space-y-6 text-xs">
+      <!-- Metadata Cards -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block font-mono">ACTION TYPE</span>
+          <span id="drawer-action" class="font-bold text-sm text-white font-mono mt-0.5 block">-</span>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block font-mono">TIMESTAMP</span>
+          <span id="drawer-timestamp" class="font-bold text-xs text-[#F59E0B] font-mono mt-0.5 block">-</span>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block font-mono">ACTOR EMAIL</span>
+          <span id="drawer-actor-email" class="font-semibold text-xs text-white truncate mt-0.5 block">-</span>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block font-mono">IP ADDRESS</span>
+          <span id="drawer-ip" class="font-bold text-xs text-purple-400 font-mono mt-0.5 block">-</span>
+        </div>
+        <div class="col-span-2 bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl">
+          <span class="text-[10px] text-slate-400 block font-mono">AFFECTED SALON</span>
+          <span id="drawer-salon" class="font-bold text-xs text-white mt-0.5 block">-</span>
+        </div>
+      </div>
 
+      <!-- JSON Payload Viewer -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <span>⚙️</span> Full Event Payload / Metadata
+          </span>
+          <button id="copy-json-btn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-[11px] font-semibold transition flex items-center gap-1">
+            <span>📋</span> Copy JSON
+          </button>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 overflow-x-auto shadow-inner">
+          <pre id="drawer-json-content" class="font-mono text-xs text-emerald-400 leading-relaxed whitespace-pre-wrap">// Loading payload...</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="p-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-end">
+      <button id="drawer-close-bottom" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition">
+        Close Inspector
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================== SALON PROFILE SLIDE-OVER DRAWER ======================== -->
+  <div id="salon-profile-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <aside id="salon-profile-drawer" class="fixed top-0 right-0 h-full w-full max-w-xl bg-[#0E131F] border-l border-slate-800 z-50 translate-x-full transition-transform duration-300 ease-in-out shadow-2xl flex flex-col">
+    <!-- Header -->
+    <div class="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">💈</span>
+        <div>
+          <h2 id="profile-drawer-title" class="text-base font-extrabold text-white">Salon Profile</h2>
+          <p id="profile-drawer-subtitle" class="text-xs text-slate-400 font-mono">CR / Registration ID</p>
+        </div>
+      </div>
+      <button id="close-profile-drawer-btn" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm font-bold transition">
+        ✕
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div id="profile-drawer-body" class="p-6 overflow-y-auto flex-1 space-y-6 text-xs">
+      <!-- Injected dynamically by admin.js -->
+    </div>
+
+    <!-- Footer -->
+    <div class="p-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
+      <button id="profile-drawer-impersonate-btn" class="px-4 py-2.5 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 font-bold text-xs rounded-xl transition flex items-center gap-2">
+        <span>👑</span>
+        <span>Inspect Dashboard</span>
+      </button>
+      <button id="profile-drawer-close-btn" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition">
+        Close Profile
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================== EXPLICIT STATUS CHANGE CONFIRMATION MODAL ======================== -->
+  <div id="status-confirm-modal-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 transition-opacity">
+    <div id="status-confirm-modal" class="bg-[#0E131F] border border-slate-700/80 rounded-3xl p-6 md:p-8 w-full max-w-lg space-y-5 shadow-2xl relative text-xs">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div id="status-modal-icon-container" class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg shrink-0 bg-amber-500/10 text-amber-400 border border-amber-500/30">
+            ⚠️
+          </div>
+          <div>
+            <h3 id="status-modal-title" class="text-base font-extrabold text-white tracking-tight">Confirm Status Modification</h3>
+            <p id="status-modal-salon-name" class="text-xs text-slate-400 font-medium mt-0.5">Salon Name</p>
+          </div>
+        </div>
+        <button id="status-modal-close-x" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- State Transition Banner -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase font-mono block">Current State</span>
+          <span id="status-modal-current-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold font-mono inline-block mt-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            ACTIVE
+          </span>
+        </div>
+        <div class="text-slate-500 text-lg font-bold">➔</div>
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase font-mono block">Target State</span>
+          <span id="status-modal-target-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold font-mono inline-block mt-1 bg-red-500/10 text-red-400 border border-red-500/20">
+            SUSPENDED
+          </span>
+        </div>
+      </div>
+
+      <!-- Consequence Warning Box -->
+      <div id="status-modal-warning-box" class="p-3.5 rounded-xl border text-xs leading-relaxed">
+        <!-- Consequence message populated dynamically -->
+      </div>
+
+      <!-- Reason Selection & Audit Notes Form -->
+      <div class="space-y-4">
+        <div>
+          <label for="status-modal-reason-category" class="block text-xs font-semibold text-slate-300 mb-1.5">
+            Audit Reason Category <span class="text-red-400">*</span>
+          </label>
+          <select id="status-modal-reason-category" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]">
+            <option value="Regulatory Compliance / Municipal Notice">Regulatory Compliance / Municipal Notice</option>
+            <option value="Commercial Registration (CR) Verification Required">Commercial Registration (CR) Verification Required</option>
+            <option value="Payment Default / Subscription Overdue">Payment Default / Subscription Overdue</option>
+            <option value="Shop Owner Voluntary Deactivation">Shop Owner Voluntary Deactivation</option>
+            <option value="Customer Quality & Service Dispute">Customer Quality & Service Dispute</option>
+            <option value="Scheduled Maintenance / Relocation">Scheduled Maintenance / Relocation</option>
+            <option value="Administrative Review & Approval">Administrative Review & Approval</option>
+            <option value="Other / Custom Administrative Override">Other / Custom Administrative Override</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="status-modal-notes" class="block text-xs font-semibold text-slate-300 mb-1.5">
+            Audit Trail Rationale / Notes <span class="text-red-400">*</span>
+          </label>
+          <textarea id="status-modal-notes" rows="3" placeholder="Provide mandatory compliance details for the audit log..." class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 text-xs focus:outline-none focus:border-[#F59E0B] font-mono"></textarea>
+        </div>
+
+        <!-- Explicit Confirmation Checkbox -->
+        <label class="flex items-start gap-3 p-3 bg-slate-900/60 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition">
+          <input type="checkbox" id="status-modal-confirm-checkbox" class="mt-0.5 rounded border-slate-700 text-[#F59E0B] focus:ring-[#F59E0B] bg-slate-950" />
+          <span class="text-[11px] text-slate-300 leading-normal select-none">
+            I confirm that this status change is authorized and acknowledge that this action will be permanently recorded under <strong class="text-white">admin@barberapp.sa</strong> in the immutable audit trail.
+          </span>
+        </label>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+        <button id="status-modal-cancel-btn" type="button" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition">
+          Cancel
+        </button>
+        <button id="status-modal-submit-btn" type="button" disabled class="px-5 py-2.5 bg-red-600/50 text-slate-400 font-bold text-xs rounded-xl transition cursor-not-allowed flex items-center gap-2">
+          <span id="status-modal-submit-spinner" class="hidden w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          <span id="status-modal-submit-text">Confirm Status Change</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================== UNSAVED CHANGES WARNING MODAL ======================== -->
+  <div id="unsaved-changes-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full shadow-2xl p-6 space-y-5 text-white animate-scaleIn">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl font-bold shadow-inner">
+            ⚠️
+          </div>
+          <div>
+            <h3 id="unsaved-modal-title" class="text-base font-extrabold text-white tracking-tight">Unsaved Configuration Changes</h3>
+            <p class="text-xs text-amber-400/90 font-medium mt-0.5">Pending modifications detected</p>
+          </div>
+        </div>
+        <button id="unsaved-modal-close-x" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- Impact Explanation -->
+      <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-xs text-slate-200 leading-relaxed">
+        <p id="unsaved-modal-description">
+          You have modified settings that have not been saved to the system configuration cache yet. Switching tabs or navigating away now will discard these modifications.
+        </p>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+        <button id="unsaved-modal-stay-btn" type="button" class="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition">
+          Stay on Tab
+        </button>
+        <button id="unsaved-modal-discard-btn" type="button" class="w-full sm:w-auto px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 font-bold text-xs rounded-xl transition">
+          Discard Changes
+        </button>
+        <button id="unsaved-modal-save-btn" type="button" class="w-full sm:w-auto px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-black text-xs rounded-xl transition shadow-lg shadow-[#F59E0B]/20 flex items-center justify-center gap-1.5">
+          <span>💾</span>
+          <span>Save & Proceed</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ======================== INVITE INTERNAL ADMIN MODAL ======================== -->
+  <div id="invite-admin-modal-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 transition-opacity">
+    <div id="invite-admin-modal" class="bg-[#0E131F] border border-slate-700/80 rounded-3xl p-6 md:p-8 w-full max-w-lg space-y-5 shadow-2xl relative text-xs text-white">
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg shrink-0 bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30">
+            ✉️
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white tracking-tight">Invite Internal Admin</h3>
+            <p class="text-xs text-slate-400 font-medium mt-0.5">Provision platform administrative access for internal staff</p>
+          </div>
+        </div>
+        <button id="invite-modal-close-x" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- Error Alert Box -->
+      <div id="invite-modal-error" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+        <span>⚠️</span>
+        <span id="invite-modal-error-text">Validation error message</span>
+      </div>
+
+      <!-- Form Inputs -->
+      <form id="invite-admin-form" class="space-y-4">
+        <div>
+          <label for="invite-modal-name" class="block text-xs font-semibold text-slate-300 mb-1.5">
+            Full Name <span class="text-red-400">*</span>
+          </label>
+          <input type="text" id="invite-modal-name" placeholder="e.g., Noura Al-Dosari" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]" />
+        </div>
+
+        <div>
+          <label for="invite-modal-email" class="block text-xs font-semibold text-slate-300 mb-1.5">
+            Email Address <span class="text-red-400">*</span>
+          </label>
+          <input type="email" id="invite-modal-email" placeholder="e.g., inspector@barberapp.sa" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B] font-mono" />
+        </div>
+
+        <div>
+          <label for="invite-modal-phone" class="block text-xs font-semibold text-slate-300 mb-1.5">
+            Saudi Phone Number <span class="text-slate-500">(Optional)</span>
+          </label>
+          <input type="tel" id="invite-modal-phone" placeholder="05XXXXXXXX or +966 5XXXXXXXX" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B] font-mono" />
+        </div>
+
+        <div>
+          <label for="invite-modal-role" class="block text-xs font-semibold text-slate-300 mb-1.5">
+            Assigned Platform Role <span class="text-red-400">*</span>
+          </label>
+          <select id="invite-modal-role" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]">
+            <option value="SUPPORT_AGENT">🎧 Support Agent (Salon Moderation & Inquiries)</option>
+            <option value="AUDIT_INSPECTOR">🛡️ Audit Inspector (Compliance Logs & Export)</option>
+            <option value="SUPER_ADMIN">👑 Super Administrator (Full Global Access)</option>
+          </select>
+          <p class="text-[10px] text-slate-500 mt-1">Tenant roles (SALON_OWNER, SALON_STAFF) are isolated to tenant onboarding and cannot be assigned to internal platform staff.</p>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <button id="invite-modal-cancel-btn" type="button" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition">
+            Cancel
+          </button>
+          <button id="invite-modal-submit-btn" type="submit" class="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-black text-xs rounded-xl transition shadow-lg shadow-[#F59E0B]/20 flex items-center gap-2">
+            <span id="invite-modal-spinner" class="hidden w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+            <span>Send Admin Invitation</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================== EDIT ADMIN ROLE MODAL ======================== -->
+  <div id="edit-role-modal-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 transition-opacity">
+    <div id="edit-role-modal" class="bg-[#0E131F] border border-slate-700/80 rounded-3xl p-6 md:p-8 w-full max-w-lg space-y-5 shadow-2xl relative text-xs text-white">
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg shrink-0 bg-purple-500/10 text-purple-400 border border-purple-500/30">
+            🛡️
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-white tracking-tight">Modify Platform Role</h3>
+            <p id="edit-role-modal-user-subtitle" class="text-xs text-slate-400 font-medium mt-0.5">Admin User</p>
+          </div>
+        </div>
+        <button id="edit-role-close-x" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- Warning Box -->
+      <div id="edit-role-modal-warning" class="hidden p-3.5 rounded-xl border text-xs leading-relaxed"></div>
+
+      <!-- Target User Info -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] text-slate-400 uppercase font-mono">Target User</span>
+          <span id="edit-role-modal-user-name" class="font-bold text-white">-</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] text-slate-400 uppercase font-mono">Current Platform Role</span>
+          <span id="edit-role-modal-current-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono">-</span>
+        </div>
+      </div>
+
+      <!-- Role Selector -->
+      <div class="space-y-2">
+        <label for="edit-role-select" class="block text-xs font-semibold text-slate-300">
+          Select New Platform Role <span class="text-red-400">*</span>
+        </label>
+        <select id="edit-role-select" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F59E0B]">
+          <option value="SUPER_ADMIN">👑 Super Administrator (Full Global Access)</option>
+          <option value="SUPPORT_AGENT">🎧 Support Agent (Salon Moderation & Inquiries)</option>
+          <option value="AUDIT_INSPECTOR">🛡️ Audit Inspector (Compliance Logs & Export)</option>
+        </select>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+        <button id="edit-role-cancel-btn" type="button" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition">
+          Cancel
+        </button>
+        <button id="edit-role-submit-btn" type="button" class="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-black text-xs rounded-xl transition shadow-lg shadow-[#F59E0B]/20 flex items-center gap-2">
+          <span id="edit-role-spinner" class="hidden w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+          <span>Save Role Assignment</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Scripts -->
+  <script src="../src/js/qrcode.min.js"></script>
+  <script src="../src/js/jszip.min.js"></script>
   <script type="module" src="../src/js/admin.js"></script>
 </body>
 </html>

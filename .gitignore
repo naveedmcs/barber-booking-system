@@ -34,3 +34,8 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Uploaded media (runtime test uploads)
+backend/uploads/
+uploads/
+

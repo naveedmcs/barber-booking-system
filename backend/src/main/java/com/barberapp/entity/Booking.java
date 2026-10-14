@@ -36,11 +36,11 @@ public class Booking {
     private Barber barber;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_id", nullable = false)
+    @JoinColumn(name = "service_id")
     private ServiceItem service;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name = "customer_id")
     private Customer customer;
 
     @Column(name = "slot_start", nullable = false)
@@ -56,6 +56,12 @@ public class Booking {
 
     @Column(name = "hold_expires_at")
     private LocalDateTime holdExpiresAt;
+
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+    @Column(name = "notes", length = 500)
+    private String notes;
 
     @Version
     @Column(nullable = false)

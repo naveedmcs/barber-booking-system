@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Redirecting to Super Admin User Audit...</title>
+  <script>
+    // Forward directly to the Super Admin portal preserving any search parameters
+    const search = window.location.search;
+    const separator = search ? (search.includes("view=") ? "" : "&view=audit") : "?view=audit";
+    window.location.replace("../dashboard/admin.html" + (search ? search + separator : separator) + "#audit");
+  </script>
+</head>
+<body style="background:#0B0F17; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
+  <p>Loading User Audit Workspace...</p>
+</body>
+</html>

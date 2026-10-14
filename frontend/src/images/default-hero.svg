@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="1200" height="480">
+  <defs>
+    <linearGradient id="heroBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0F17" />
+      <stop offset="50%" stop-color="#151D2C" />
+      <stop offset="100%" stop-color="#0B0F17" />
+    </linearGradient>
+    <linearGradient id="goldSheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <linearGradient id="glowCircle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0" />
+    </linearGradient>
+    <pattern id="pinstripe" width="30" height="30" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="30" stroke="#F59E0B" stroke-width="1" stroke-opacity="0.05" />
+    </pattern>
+  </defs>
+
+  <!-- Deep Dark Base -->
+  <rect width="1200" height="480" fill="url(#heroBg)" />
+  <rect width="1200" height="480" fill="url(#pinstripe)" />
+
+  <!-- Ambient Glow Orbs -->
+  <circle cx="250" cy="120" r="220" fill="url(#glowCircle)" />
+  <circle cx="980" cy="360" r="260" fill="url(#glowCircle)" />
+
+  <!-- Geometric Luxury Border Accent -->
+  <rect x="24" y="24" width="1152" height="432" rx="16" fill="none" stroke="url(#goldSheen)" stroke-width="1.5" stroke-opacity="0.35" />
+
+  <!-- Barbershop Scissor & Razor Crest (Right Side Watermark) -->
+  <g transform="translate(860, 90) scale(3.6)" opacity="0.16">
+    <circle cx="40" cy="40" r="36" fill="none" stroke="#F59E0B" stroke-width="2" />
+    <circle cx="40" cy="40" r="30" fill="none" stroke="#F59E0B" stroke-width="1" stroke-dasharray="3 3" />
+    <!-- Scissors -->
+    <path d="M22 22 L58 58 M58 22 L22 58" stroke="#F59E0B" stroke-width="3" stroke-linecap="round" />
+    <circle cx="20" cy="20" r="5" fill="none" stroke="#F59E0B" stroke-width="2" />
+    <circle cx="60" cy="20" r="5" fill="none" stroke="#F59E0B" stroke-width="2" />
+  </g>
+
+  <!-- Left Side Badges & Typography -->
+  <g transform="translate(60, 160)">
+    <!-- Badge Pill -->
+    <rect x="0" y="0" width="220" height="30" rx="15" fill="#F59E0B" fill-opacity="0.12" stroke="#F59E0B" stroke-opacity="0.3" stroke-width="1" />
+    <text x="110" y="19" fill="#F59E0B" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" letter-spacing="2" text-anchor="middle">PREMIER BARBERSHOP</text>
+
+    <!-- Main Title -->
+    <text x="0" y="75" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="900" letter-spacing="-0.5">EXECUTIVE GROOMING ATELIER</text>
+
+    <!-- Subtitle -->
+    <text x="0" y="115" fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="500">Royal Haircut • Steam Razor Shave • Beard Sculpting • Scalp Ritual</text>
+
+    <!-- Rating & Amenities -->
+    <text x="0" y="150" fill="#F59E0B" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700">★ ★ ★ ★ ★  5.0 RATED SALON  •  AUTHENTIC SAUDI HOSPITALITY</text>
+  </g>
+</svg>

@@ -38,6 +38,12 @@ public class WorkingHours {
     @Builder.Default
     private Boolean isOff = false;
 
+    @Column(name = "break_start")
+    private LocalTime breakStart;
+
+    @Column(name = "break_end")
+    private LocalTime breakEnd;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shop Owner Schedule | Barber SaaS</title>
+  <link rel="icon" type="image/svg+xml" href="../src/images/favicon.svg" />
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,7 +40,7 @@
   <!-- Header -->
   <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
     <div class="flex items-center gap-3">
-      <a href="../salons.html" class="w-10 h-10 bg-slate-900 border border-slate-700 hover:border-[#F59E0B] text-slate-300 hover:text-white rounded-xl flex items-center justify-center text-sm font-bold transition" title="Back to Salons Directory">
+      <a id="header-back-btn" href="./admin.html" class="w-10 h-10 bg-slate-900 border border-slate-700 hover:border-[#F59E0B] text-slate-300 hover:text-white rounded-xl flex items-center justify-center text-sm font-bold transition hidden" title="Back to Admin Dashboard">
         ←
       </a>
       <div>
@@ -55,7 +56,10 @@
     </div>
 
     <div class="flex items-center gap-3">
-      <a href="../salons.html" class="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-[#F59E0B] text-slate-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+      <a id="header-portal-btn" href="../portal/index.html" class="px-3.5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+        <span>🏛️ Salon Portal</span>
+      </a>
+      <a id="header-salons-btn" href="../salons.html" class="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-[#F59E0B] text-slate-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 hidden">
         <span>💈 Salons Directory</span>
       </a>
       <button id="open-walkin-modal" class="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-bold text-xs rounded-xl transition shadow-lg shadow-[#F59E0B]/20 flex items-center gap-2">

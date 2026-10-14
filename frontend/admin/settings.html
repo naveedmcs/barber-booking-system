@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirecting to System Configuration...</title>
+  <script>
+    // Forward directly to Super Admin portal preserving search parameters and setting view=settings
+    const search = window.location.search;
+    const separator = search ? (search.includes("view=") ? "" : "&view=settings") : "?view=settings";
+    window.location.replace("../dashboard/admin.html" + (search ? search + separator : separator) + "#settings");
+  </script>
+</head>
+<body style="background:#0B0F17; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
+  <div style="text-align:center;">
+    <p style="font-size:18px; font-weight:bold; margin-bottom:8px;">⚙️ Loading Super Admin System Configuration...</p>
+    <p style="font-size:12px; color:#94a3b8;">Redirecting to `/dashboard/admin.html?view=settings`</p>
+  </div>
+</body>
+</html>

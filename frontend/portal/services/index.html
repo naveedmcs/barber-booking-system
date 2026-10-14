@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Services & Catalog Management | BarberApp KSA</title>
+  <link rel="icon" type="image/svg+xml" href="../../src/images/favicon.svg" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
+            luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981', cyan: '#38BDF8', purple: '#A855F7' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../../src/css/output.css" />
+</head>
+<body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 flex flex-col">
+
+  <!-- Toast Notification Alert Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Common Shell: Top Shop Header -->
+  <header class="sticky top-0 z-40 bg-[#0B0F17]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+    <!-- Brand & Shop Context -->
+    <div class="flex items-center gap-3 md:gap-5 min-w-0">
+      <button id="mobile-menu-toggle" class="lg:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white" aria-label="Toggle Navigation">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/30 flex items-center justify-center text-xl shrink-0 shadow-inner">
+          💈
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 id="header-salon-name" class="text-base sm:text-lg font-extrabold text-white tracking-tight truncate">
+              Golden Scissors Salon
+            </h1>
+            <span class="text-emerald-400 text-xs shrink-0" title="Verified Saudi Commercial Establishment">✓</span>
+          </div>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span id="header-branch-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-1">
+              <span>📍</span>
+              <span id="header-branch-text">Olaya, Riyadh</span>
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/30">
+              <span>👑</span>
+              <span>SALON_OWNER</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="flex items-center bg-slate-900/90 border border-slate-800 rounded-2xl p-1 shadow-inner">
+        <span class="text-[10px] font-mono text-slate-400 px-2 hidden sm:inline">Shift:</span>
+        <button id="shift-toggle-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30">
+          <span id="shift-indicator-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="shift-status-text">Online</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+        <div class="hidden md:flex flex-col text-right">
+          <span id="header-user-name" class="text-xs font-bold text-white truncate max-w-[130px]">Tariq Al-Mansoor</span>
+          <span id="header-user-email" class="text-[10px] font-mono text-slate-400 truncate max-w-[130px]">owner@goldenscissors.sa</span>
+        </div>
+        <div id="header-user-avatar" class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-amber-400 font-bold text-xs flex items-center justify-center shrink-0">
+          TM
+        </div>
+        <button id="header-signout-btn" class="p-2 rounded-xl bg-slate-900/80 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 text-slate-400 hover:text-red-400 text-xs font-bold transition" title="Sign Out">
+          🚪
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Body Content: Sidebar + Workspace -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Sidebar -->
+    <aside id="portal-sidebar" class="w-64 bg-[#0E131F]/90 backdrop-blur-md border-r border-slate-800 flex flex-col justify-between p-4 fixed lg:static inset-y-0 left-0 z-30 -translate-x-full lg:translate-x-0 transition-transform duration-200">
+      <div class="space-y-6">
+        <div class="px-3 pt-2">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold block">
+            Navigation Modules
+          </span>
+          <span class="text-[11px] text-amber-400/80 font-medium block mt-0.5">
+            Salon Management Console
+          </span>
+        </div>
+
+        <nav id="portal-nav-menu" class="space-y-1.5">
+          <!-- Injected dynamically -->
+        </nav>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2">
+        <div class="flex items-center justify-between text-[11px]">
+          <span class="text-slate-400 font-mono">Tenant Isolation:</span>
+          <span class="text-emerald-400 font-bold font-mono">ENFORCED</span>
+        </div>
+        <div class="text-[10px] text-slate-500 font-mono leading-tight">
+          Salon ID: <span id="sidebar-salon-id-badge" class="text-amber-400 font-bold">#31</span><br/>
+          Scope: <span class="text-amber-400 font-bold">Tenant Unrestricted</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Title & Controls Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <span class="text-2xl">✂️</span>
+              <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight">Services & Pricing Catalogue</h2>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Configure salon service packages, durations, cleanup buffer intervals, and public booking visibility.</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button id="open-add-service-btn" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl transition shadow-lg shadow-amber-500/20 flex items-center gap-2">
+              <span>+</span>
+              <span>Add New Service</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Stats Overview Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-900/70 border border-slate-800/80 p-4 rounded-2xl shadow-lg">
+            <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Total Services</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="stat-total-services" class="text-2xl font-black text-white">0</span>
+              <span class="text-xs text-slate-500">catalogue items</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/70 border border-slate-800/80 p-4 rounded-2xl shadow-lg">
+            <span class="text-[11px] font-mono text-emerald-400 uppercase tracking-wider block">Publicly Visible</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="stat-visible-services" class="text-2xl font-black text-emerald-400">0</span>
+              <span class="text-xs text-emerald-500/80">bookable online</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/70 border border-slate-800/80 p-4 rounded-2xl shadow-lg">
+            <span class="text-[11px] font-mono text-amber-400 uppercase tracking-wider block">Categories</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="stat-categories-count" class="text-2xl font-black text-amber-400">0</span>
+              <span class="text-xs text-amber-500/80">distinct types</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/70 border border-slate-800/80 p-4 rounded-2xl shadow-lg">
+            <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Avg Price</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="stat-avg-price" class="text-2xl font-black text-white">0 SAR</span>
+              <span class="text-xs text-slate-500">per service</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Bar & Search -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/50 border border-slate-800/80 p-4 rounded-2xl">
+          <!-- Category Filter Tabs -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button class="service-cat-filter px-3.5 py-1.5 rounded-xl text-xs font-black transition bg-amber-500 text-slate-950 border border-amber-400 shadow-md shadow-amber-500/20" data-category="ALL">
+              All Categories
+            </button>
+            <button class="service-cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:text-white border border-slate-800" data-category="Haircut">
+              Haircut
+            </button>
+            <button class="service-cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:text-white border border-slate-800" data-category="Beard & Shave">
+              Beard & Shave
+            </button>
+            <button class="service-cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:text-white border border-slate-800" data-category="Facial & Spa">
+              Facial & Spa
+            </button>
+            <button class="service-cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:text-white border border-slate-800" data-category="Packages & VIP">
+              VIP Packages
+            </button>
+            <button class="service-cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold transition bg-slate-900 text-slate-400 hover:text-white border border-slate-800" data-category="General">
+              General
+            </button>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative w-full sm:w-72">
+            <span class="absolute left-3.5 top-2.5 text-slate-500 text-xs">🔍</span>
+            <input type="text" id="services-search-input" placeholder="Search by name, description..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400" />
+          </div>
+        </div>
+
+        <!-- Services Cards Grid -->
+        <div id="services-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Injected dynamically by portal-services.js -->
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Add / Edit Service Modal -->
+  <div id="service-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 w-full max-w-lg space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl text-amber-400">
+            ✂️
+          </div>
+          <div>
+            <h3 id="service-modal-title" class="text-base font-extrabold text-white">Add New Service</h3>
+            <p class="text-[11px] text-slate-400">Published to public customer booking page and portal</p>
+          </div>
+        </div>
+        <button id="close-service-modal-btn" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm">✕</button>
+      </div>
+
+      <form id="service-form" class="space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block font-semibold text-slate-300 mb-1.5">Service Name</label>
+            <input type="text" id="service-name" required placeholder="e.g. Royal Haircut & Beard Sculpting" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400" />
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Category</label>
+            <select id="service-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-400">
+              <option value="Haircut">Haircut</option>
+              <option value="Beard & Shave">Beard & Shave</option>
+              <option value="Facial & Spa">Facial & Spa</option>
+              <option value="Packages & VIP">Packages & VIP</option>
+              <option value="General">General Grooming</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Price (SAR)</label>
+            <input type="number" step="0.5" id="service-price" required placeholder="60.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400" />
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Service Duration (Minutes)</label>
+            <select id="service-duration" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400">
+              <option value="15">15 minutes</option>
+              <option value="20">20 minutes</option>
+              <option value="25">25 minutes</option>
+              <option value="30" selected>30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">60 minutes</option>
+              <option value="90">90 minutes</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1.5">Cleanup Buffer Time</label>
+            <select id="service-buffer" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-amber-400">
+              <option value="0">0 mins (No buffer)</option>
+              <option value="5" selected>5 mins (Standard)</option>
+              <option value="10">10 mins</option>
+              <option value="15">15 mins (Deep clean)</option>
+            </select>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block font-semibold text-slate-300 mb-1.5">Service Description</label>
+            <textarea id="service-description" rows="2" placeholder="Brief details about what is included in this service..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 resize-none"></textarea>
+          </div>
+        </div>
+
+        <!-- Assigned Staff Checkboxes -->
+        <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <label class="block font-semibold text-slate-300 text-xs">Qualified / Assigned Staff Members</label>
+          <div id="assigned-staff-checkboxes" class="space-y-2">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Visibility Toggle -->
+        <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+          <div>
+            <span class="font-bold text-white block">Public Booking Visibility</span>
+            <span class="text-[11px] text-slate-400 block">Display this service on customer online booking portal</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="service-visible-check" checked class="sr-only peer" />
+            <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+          </label>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+          <button type="button" id="cancel-service-btn" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition">Cancel</button>
+          <button type="submit" id="save-service-btn" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/20 transition">Create Service</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="../../src/js/portal-services.js"></script>
+</body>
+</html>

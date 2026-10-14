@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salon Profile & Operations Settings | BarberApp KSA</title>
+  <link rel="icon" type="image/svg+xml" href="../../src/images/favicon.svg" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
+            luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981', cyan: '#38BDF8', purple: '#A855F7' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../../src/css/output.css" />
+</head>
+<body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 flex flex-col">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Common Shell: Top Shop Header -->
+  <header class="sticky top-0 z-40 bg-[#0B0F17]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+    <!-- Brand & Shop Context -->
+    <div class="flex items-center gap-3 md:gap-5 min-w-0">
+      <button id="mobile-menu-toggle" class="lg:hidden p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white" aria-label="Toggle Navigation">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/30 flex items-center justify-center text-xl shrink-0 shadow-inner">
+          💈
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 id="header-salon-name" class="text-base sm:text-lg font-extrabold text-white tracking-tight truncate">
+              Golden Scissors Salon
+            </h1>
+            <span class="text-emerald-400 text-xs shrink-0" title="Verified Saudi Commercial Establishment">✓</span>
+          </div>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span id="header-branch-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-1">
+              <span>📍</span>
+              <span id="header-branch-text">Olaya, Riyadh</span>
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/30">
+              <span>👑</span>
+              <span>SALON_OWNER</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="flex items-center bg-slate-900/90 border border-slate-800 rounded-2xl p-1 shadow-inner">
+        <span class="text-[10px] font-mono text-slate-400 px-2 hidden sm:inline">Shift:</span>
+        <button id="shift-toggle-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30">
+          <span id="shift-indicator-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="shift-status-text">Online</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+        <div class="hidden md:flex flex-col text-right">
+          <span id="header-user-name" class="text-xs font-bold text-white truncate max-w-[130px]">Tariq Al-Mansoor</span>
+          <span id="header-user-email" class="text-[10px] font-mono text-slate-400 truncate max-w-[130px]">owner@goldenscissors.sa</span>
+        </div>
+        <div id="header-user-avatar" class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-amber-400 font-bold text-xs flex items-center justify-center shrink-0">
+          TM
+        </div>
+        <button id="header-signout-btn" class="p-2 rounded-xl bg-slate-900/80 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 text-slate-400 hover:text-red-400 text-xs font-bold transition" title="Sign Out">
+          🚪
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Body Content: Sidebar + Workspace -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Sidebar -->
+    <aside id="portal-sidebar" class="w-64 bg-[#0E131F]/90 backdrop-blur-md border-r border-slate-800 flex flex-col justify-between p-4 fixed lg:static inset-y-0 left-0 z-30 -translate-x-full lg:translate-x-0 transition-transform duration-200">
+      <div class="space-y-6">
+        <div class="px-3 pt-2">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold block">
+            Navigation Modules
+          </span>
+          <span class="text-[11px] text-amber-400/80 font-medium block mt-0.5">
+            Salon Management Console
+          </span>
+        </div>
+
+        <nav id="portal-nav-menu" class="space-y-1.5">
+          <!-- Injected dynamically -->
+        </nav>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2">
+        <div class="flex items-center justify-between text-[11px]">
+          <span class="text-slate-400 font-mono">Tenant Isolation:</span>
+          <span class="text-emerald-400 font-bold font-mono">ENFORCED</span>
+        </div>
+        <div class="text-[10px] text-slate-500 font-mono leading-tight">
+          Salon ID: <span id="sidebar-salon-id-badge" class="text-amber-400 font-bold">#31</span><br/>
+          Scope: <span class="text-amber-400 font-bold">Tenant Unrestricted</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <div class="max-w-6xl mx-auto space-y-6">
+
+        <!-- Top Title & Controls Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <span class="text-2xl">⚙️</span>
+              <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight">Salon Profile & Operations Settings</h2>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Configure salon shop profile, geocoding coordinates, weekly open/close hours, and booking engine rules.</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button id="save-settings-btn" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl transition shadow-lg shadow-amber-500/20 flex items-center gap-2">
+              <span>💾</span>
+              <span>Save All Settings</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Form Container -->
+        <form id="salon-settings-form" class="space-y-6">
+
+          <!-- Section 1: Salon Identity & Brand -->
+          <div class="bg-slate-900/70 border border-slate-800/80 p-5 sm:p-6 rounded-3xl space-y-5 shadow-xl">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+              <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">
+                🏷️
+              </div>
+              <div>
+                <h3 class="text-sm font-extrabold text-white">Salon Identity & Contact Info</h3>
+                <p class="text-[11px] text-slate-400">Public commercial business details displayed to customers.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">Salon Name *</label>
+                <input id="setting-name" type="text" required placeholder="e.g., Golden Scissors Salon"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">Commercial Contact Phone *</label>
+                <input id="setting-phone" type="text" required placeholder="+966 11 456 7890"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+            </div>
+
+            <!-- Media URLs, Uploads & Live Previews -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              
+              <!-- 1. Brand Logo Image -->
+              <div class="space-y-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between">
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="block text-xs font-mono text-slate-300 uppercase tracking-wider font-bold">💈 Brand Logo</label>
+                    <span id="logo-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">Auto-Compressed</span>
+                  </div>
+                  
+                  <!-- URL input with Default Favicon button -->
+                  <div class="relative">
+                    <input id="setting-logo-url" type="url" placeholder="https://... or click Upload Logo below"
+                      class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-3 pr-24 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+                    <button type="button" id="default-logo-favicon-btn" title="Use default favicon SVG (/favicon.svg)"
+                      class="absolute right-1.5 top-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-[10px] font-bold transition flex items-center gap-1 shadow-sm border border-slate-700">
+                      <span>💈</span>
+                      <span>Favicon</span>
+                    </button>
+                  </div>
+
+                  <!-- Upload action row -->
+                  <div class="flex items-center gap-2">
+                    <input type="file" id="setting-logo-file-input" accept="image/jpeg,image/png,image/webp" class="hidden" />
+                    <button type="button" id="trigger-logo-upload-btn"
+                      class="flex-1 py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                      <span>📤</span>
+                      <span>Upload & Auto-Compress Logo</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Logo Live Preview Box -->
+                <div class="flex items-center gap-3.5 p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-700/80 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
+                    <img id="logo-preview-img" src="/favicon.svg" alt="Brand Logo Preview" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/favicon.svg';" />
+                    <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] text-white font-mono pointer-events-none">1:1</div>
+                  </div>
+                  <div class="min-w-0 text-xs flex-1">
+                    <span class="font-bold text-white block">Brand Logo Preview</span>
+                    <span class="text-[10px] text-slate-400 block truncate">Square 1:1 format • Defaults to favicon.svg if empty</span>
+                    <span id="logo-compress-info" class="text-[10px] text-emerald-400 font-mono block mt-0.5">Auto-compresses to 800×800px</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Cover Banner Image -->
+              <div class="space-y-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between">
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="block text-xs font-mono text-slate-300 uppercase tracking-wider font-bold">🖼️ Hero Cover / Banner</label>
+                    <span id="cover-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">Auto-Compressed</span>
+                  </div>
+
+                  <!-- URL input with Default Banner button -->
+                  <div class="relative">
+                    <input id="setting-cover-url" type="url" placeholder="https://... or click Upload Cover below"
+                      class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-3 pr-24 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+                    <button type="button" id="default-cover-btn" title="Set default luxury salon storefront banner"
+                      class="absolute right-1.5 top-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-[10px] font-bold transition flex items-center gap-1 shadow-sm border border-slate-700">
+                      <span>🖼️</span>
+                      <span>Default</span>
+                    </button>
+                  </div>
+
+                  <!-- Upload action row -->
+                  <div class="flex items-center gap-2">
+                    <input type="file" id="setting-cover-file-input" accept="image/jpeg,image/png,image/webp" class="hidden" />
+                    <button type="button" id="trigger-cover-upload-btn"
+                      class="flex-1 py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                      <span>📤</span>
+                      <span>Upload & Auto-Compress Cover</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Cover Live Preview Box -->
+                <div class="flex items-center gap-3.5 p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <div class="w-24 h-14 rounded-2xl bg-slate-950 border border-slate-700/80 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
+                    <img id="cover-preview-img" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80" alt="Cover Preview" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/favicon.svg';" />
+                    <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] text-white font-mono pointer-events-none">16:9</div>
+                  </div>
+                  <div class="min-w-0 text-xs flex-1">
+                    <span class="font-bold text-white block">Hero Cover Preview</span>
+                    <span class="text-[10px] text-slate-400 block truncate">Wide 16:9 banner displayed on public storefront</span>
+                    <span id="cover-compress-info" class="text-[10px] text-emerald-400 font-mono block mt-0.5">Auto-compresses to 1920×1080px</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Section 2: Salon Photo Gallery (Max 5 Photos) -->
+          <div class="bg-slate-900/70 border border-slate-800/80 p-5 sm:p-6 rounded-3xl space-y-5 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">
+                  📸
+                </div>
+                <div>
+                  <h3 class="text-sm font-extrabold text-white">Salon Photo Gallery</h3>
+                  <p class="text-[11px] text-slate-400">Showcase your shop ambiance and chairs. Capped at a strict maximum of 5 photos (max 5MB each, JPEG/PNG/WebP).</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="gallery-count-badge" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  0 / 5 Photos
+                </span>
+              </div>
+            </div>
+
+            <!-- Upload Area & Controls -->
+            <div id="gallery-upload-panel" class="bg-slate-950/60 border border-dashed border-slate-800 hover:border-amber-500/40 rounded-2xl p-5 transition space-y-4">
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-xl shrink-0">
+                    📤
+                  </div>
+                  <div>
+                    <span class="text-xs font-bold text-white block">Upload Gallery Photo</span>
+                    <span class="text-[10px] text-slate-400 block">Accepted formats: JPG, PNG, WebP • Auto-compressed for fast UI performance</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 flex-wrap">
+                  <input type="file" id="gallery-file-input" accept="image/jpeg,image/png,image/webp" class="hidden" />
+                  <input type="text" id="gallery-caption-input" placeholder="Caption (e.g. VIP Lounge)" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 w-44" />
+                  <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none">
+                    <input type="checkbox" id="gallery-cover-checkbox" class="rounded bg-slate-900 border-slate-800 text-amber-500 focus:ring-0" />
+                    <span>Set Cover</span>
+                  </label>
+                  <button type="button" id="trigger-upload-btn" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition shadow-md shadow-amber-500/20 flex items-center gap-1.5 shrink-0">
+                    <span>+</span>
+                    <span>Choose & Upload</span>
+                  </button>
+                </div>
+              </div>
+              <div id="gallery-limit-warning" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                <span>⚠️</span>
+                <span>Maximum limit of 5 photos reached. To upload a new photo, please delete an existing one.</span>
+              </div>
+            </div>
+
+            <!-- Uploaded Photos Grid -->
+            <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <!-- Dynamically populated by portal-settings.js -->
+            </div>
+          </div>
+
+          <!-- Section 3: Address & Geolocation -->
+          <div class="bg-slate-900/70 border border-slate-800/80 p-5 sm:p-6 rounded-3xl space-y-5 shadow-xl">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+              <div class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center font-bold text-sm">
+                📍
+              </div>
+              <div>
+                <h3 class="text-sm font-extrabold text-white">Location & Geo-Coordinates</h3>
+                <p class="text-[11px] text-slate-400">Accurate coordinates power distance calculations on customer search.</p>
+              </div>
+            </div>
+
+            <!-- City Presets -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[11px] font-mono text-slate-400">Quick Presets:</span>
+              <button type="button" class="city-preset-btn px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono font-bold transition"
+                data-city="Riyadh" data-district="Al-Olaya" data-lat="24.7136" data-lng="46.6753">
+                📍 Riyadh (Olaya)
+              </button>
+              <button type="button" class="city-preset-btn px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono font-bold transition"
+                data-city="Jeddah" data-district="Al-Rawdah" data-lat="21.5433" data-lng="39.1728">
+                📍 Jeddah (Rawdah)
+              </button>
+              <button type="button" class="city-preset-btn px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono font-bold transition"
+                data-city="Dammam" data-district="Al-Faisaliyah" data-lat="26.4207" data-lng="50.0888">
+                📍 Dammam
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">Region / Province</label>
+                <input id="setting-region" type="text" placeholder="Riyadh Province"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">City</label>
+                <input id="setting-city" type="text" placeholder="Riyadh"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">District / Neighborhood</label>
+                <input id="setting-district" type="text" placeholder="Al-Olaya"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">Full Street Address</label>
+                <input id="setting-full-address" type="text" placeholder="King Fahd Road, Al-Olaya, Riyadh 12214"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">Google Maps Link or Landmarked Address</label>
+                <input id="setting-map-address" type="text" placeholder="Opposite Kingdom Centre Tower"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+            </div>
+
+            <!-- GPS Coordinates -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">Latitude (°N)</label>
+                <input id="setting-latitude" type="number" step="0.000001" placeholder="24.713600"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">Longitude (°E)</label>
+                <input id="setting-longitude" type="number" step="0.000001" placeholder="46.675300"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-amber-400" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Global Operating Schedule -->
+          <div class="bg-slate-900/70 border border-slate-800/80 p-5 sm:p-6 rounded-3xl space-y-5 shadow-xl">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+              <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                🕒
+              </div>
+              <div>
+                <h3 class="text-sm font-extrabold text-white">Global Salon Operating Schedule</h3>
+                <p class="text-[11px] text-slate-400">General shop open and close hours by day of the week.</p>
+              </div>
+            </div>
+
+            <!-- Days List -->
+            <div id="operating-hours-container" class="space-y-3">
+              <!-- Dynamically populated -->
+              <div class="py-8 text-center text-xs font-mono text-slate-500">Loading salon operating hours...</div>
+            </div>
+          </div>
+
+          <!-- Section 4: Booking Engine Rules -->
+          <div class="bg-slate-900/70 border border-slate-800/80 p-5 sm:p-6 rounded-3xl space-y-5 shadow-xl">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+              <div class="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center font-bold text-sm">
+                📋
+              </div>
+              <div>
+                <h3 class="text-sm font-extrabold text-white">Booking Rules & Policies</h3>
+                <p class="text-[11px] text-slate-400">Control advance window limits and automated cancellation restrictions.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">
+                  Minimum Cancellation Notice (Hours)
+                </label>
+                <div class="flex items-center gap-3">
+                  <input id="setting-min-cancel-hours" type="number" min="0" max="72" value="2"
+                    class="w-32 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-amber-400" />
+                  <span class="text-xs text-slate-400">hours before booking start time</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">Customers cannot cancel without salon penalty within this window.</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider mb-1.5">
+                  Maximum Advance Booking Window (Days)
+                </label>
+                <div class="flex items-center gap-3">
+                  <input id="setting-max-advance-days" type="number" min="1" max="90" value="14"
+                    class="w-32 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-amber-400" />
+                  <span class="text-xs text-slate-400">days in advance</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">Limits how far into the future customers can book slots.</p>
+              </div>
+            </div>
+
+            <!-- Auto-confirm Walk-ins -->
+            <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-4 mt-2">
+              <div>
+                <span class="text-xs font-extrabold text-white block">Auto-Confirm Staff Walk-Ins Policy</span>
+                <span class="text-[11px] text-slate-400 block">Instantly lock and confirm chairs when walk-in customers are registered without requiring customer SMS OTP verification.</span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input id="setting-auto-confirm-walkins" type="checkbox" checked class="sr-only peer" />
+                <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 5: Public Storefront & QR Access -->
+          <div class="bg-slate-900/70 border border-slate-800/80 p-5 sm:p-6 rounded-3xl space-y-5 shadow-xl">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+              <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center font-bold text-sm">
+                📱
+              </div>
+              <div>
+                <h3 class="text-sm font-extrabold text-white">Public Customer Booking Engine & QR Code</h3>
+                <p class="text-[11px] text-slate-400">Direct booking storefront link for social media bios (Instagram, Google Maps) and salon counter display.</p>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <span class="text-[10px] font-mono uppercase tracking-wider text-slate-500 block">Direct Booking Web Address</span>
+                <span id="booking-url-display" class="text-xs font-mono text-amber-400 block truncate mt-0.5 select-all font-bold">
+                  http://localhost:3000/booking.html?slug=golden-scissors
+                </span>
+              </div>
+
+              <div class="flex items-center gap-2.5 shrink-0">
+                <button type="button" id="copy-booking-url-btn" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white border border-slate-700 transition flex items-center gap-1.5">
+                  <span>📋</span>
+                  <span>Copy Link</span>
+                </button>
+                <a id="public-booking-anchor" href="http://localhost:3000/booking.html?slug=golden-scissors" target="_blank" class="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition flex items-center gap-1.5">
+                  <span>🔗</span>
+                  <span>Open Page</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Sticky Action Bar -->
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="submit" class="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-2xl transition shadow-xl shadow-amber-500/20 flex items-center gap-2">
+              <span>💾</span>
+              <span>Save All Settings</span>
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="settings-loading-overlay" class="fixed inset-0 bg-[#0B0F17]/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-3">
+      <div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+      <span class="text-xs font-mono text-slate-400">Loading salon settings...</span>
+    </div>
+  </div>
+
+  <!-- Module Script -->
+  <script type="module" src="../../src/js/portal-settings.js?v=2"></script>
+</body>
+</html>

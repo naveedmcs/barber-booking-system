@@ -39,6 +39,22 @@ public class ServiceItem {
     @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
 
+    @Column(length = 100, nullable = false)
+    @Builder.Default
+    private String category = "General";
+
+    @Column(name = "buffer_minutes", nullable = false)
+    @Builder.Default
+    private Integer bufferMinutes = 5;
+
+    @Column(name = "is_visible", nullable = false)
+    @Builder.Default
+    private Boolean isVisible = true;
+
+    @Column(name = "assigned_staff_ids", nullable = false)
+    @Builder.Default
+    private String assignedStaffIds = "ALL";
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -1,4 +1,5 @@
 import { Store } from "./store.js";
+import { AuthGuard } from "./auth-guard.js";
 
 const SAUDI_PHONE_REGEX = /^05[0-9]{8}$/;
 
@@ -27,6 +28,7 @@ const SLOT_BUCKETS = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  AuthGuard.init();
   Store.init();
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -53,17 +55,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function checkAdminAuth() {
   const container = document.getElementById("auth-status-banner");
+  const user = Store.getCurrentUser();
+  const backBtn = document.getElementById("header-back-btn");
+  const salonsBtn = document.getElementById("header-salons-btn");
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const isImpersonate = urlParams.get("impersonate") === "true";
+
+  if ((user && user.role === "SUPER_ADMIN") || isImpersonate) {
+    backBtn?.classList.remove("hidden");
+    salonsBtn?.classList.remove("hidden");
+  } else {
+    backBtn?.classList.add("hidden");
+    salonsBtn?.classList.add("hidden");
+  }
+
   if (!container) return;
 
-  const user = Store.getCurrentUser();
-  if (user && user.role === "SALON_ADMIN") {
-    container.innerHTML = `
-      <div class="bg-slate-900/90 border border-slate-800 text-slate-300 text-xs px-4 py-2.5 rounded-xl flex items-center justify-between mb-6 shadow-md">
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span>Authenticated Salon Admin Session: <strong class="text-white">${user.ownerName}</strong> (${user.shopName})</span>
+  let impersonateHtml = "";
+  if (isImpersonate) {
+    const shopName = CURRENT_SHOP ? CURRENT_SHOP.name : SHOP_SLUG;
+    impersonateHtml = `
+      <div class="bg-gradient-to-r from-amber-500/20 via-amber-600/15 to-transparent border border-amber-500/40 text-amber-200 text-xs px-5 py-3 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shadow-xl">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl animate-pulse">👑</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <strong class="text-white uppercase tracking-wider font-extrabold text-xs">Super Admin Inspection Mode</strong>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500 text-slate-950">IMPERSONATING</span>
+            </div>
+            <p class="text-[11px] text-amber-300/80 mt-0.5">
+              Live schedule view for <strong>${shopName}</strong>. Administrative overrides & walk-in reservations are logged under super admin audit credentials.
+            </p>
+          </div>
         </div>
-        <button id="auth-logout-btn" class="text-xs text-red-400 hover:text-red-300 font-semibold underline transition ml-4">
+        <a href="../admin/salons.html" class="px-3.5 py-2 bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-extrabold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shrink-0">
+          <span>← Exit to Salon Directory</span>
+        </a>
+      </div>
+    `;
+  }
+
+  if (user) {
+    const roleBadgeColor = user.role === "SUPER_ADMIN" ? "bg-purple-500/20 text-purple-400 border-purple-500/30" : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+    
+    container.innerHTML = `
+      ${impersonateHtml}
+      <div class="bg-slate-900/90 border border-slate-800 text-slate-300 text-xs px-4 py-2.5 rounded-xl flex items-center justify-between mb-6 shadow-md">
+        <div class="flex items-center gap-3">
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${roleBadgeColor}">
+            ${user.role}
+          </span>
+          <span>User: <strong class="text-white">${user.fullName || user.email}</strong> (${user.salonName || user.salonSlug || "Global"})</span>
+        </div>
+        <button id="auth-logout-btn" class="text-xs text-red-400 hover:text-red-300 font-bold underline transition ml-4">
           Logout Session
         </button>
       </div>
@@ -71,10 +116,10 @@ function checkAdminAuth() {
 
     document.getElementById("auth-logout-btn")?.addEventListener("click", () => {
       Store.logout();
-      window.location.reload();
+      window.location.href = "../login.html";
     });
   } else {
-    container.innerHTML = "";
+    container.innerHTML = impersonateHtml;
   }
 }
 

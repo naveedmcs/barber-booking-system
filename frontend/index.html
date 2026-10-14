@@ -59,12 +59,12 @@
     <!-- Portal Directory Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-      <!-- Card 1: Salons Directory (DEDICATED PAGE) -->
+      <!-- Card 1: Salons Directory (SUPER ADMIN ONLY) -->
       <a href="./salons.html"
-        class="group backdrop-blur-md bg-white/5 border border-[#F59E0B]/30 rounded-2xl p-6 hover:border-[#F59E0B] transition-all duration-300 hover:shadow-2xl hover:shadow-[#F59E0B]/20 flex flex-col justify-between space-y-4 relative overflow-hidden">
+        class="group backdrop-blur-md bg-white/5 border border-purple-500/30 rounded-2xl p-6 hover:border-purple-500 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 flex flex-col justify-between space-y-4 relative overflow-hidden">
         <div
-          class="absolute top-0 right-0 bg-[#F59E0B] text-slate-950 text-[9px] font-extrabold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
-          Explore Directory
+          class="absolute top-0 right-0 bg-purple-600 text-white text-[9px] font-extrabold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+          Super Admin Only
         </div>
         <div>
           <div
@@ -165,6 +165,11 @@
   <footer class="text-center py-6 text-xs text-slate-500 border-t border-slate-800/60 mt-12">
     Salon & Barber Booking SaaS • Built for Saudi Arabia & GCC Market
   </footer>
+
+  <script type="module">
+    import { AuthGuard } from "./src/js/auth-guard.js";
+    AuthGuard.init();
+  </script>
 </body>
 
 </html>

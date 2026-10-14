@@ -64,6 +64,45 @@ public class Shop {
     @Column(name = "qr_code_url", length = 512)
     private String qrCodeUrl;
 
+    @Column(name = "login_url", length = 512)
+    private String loginUrl;
+
+    @Column(name = "booking_url", length = 512)
+    private String bookingUrl;
+
+    @Column(name = "login_qr_code_data", columnDefinition = "LONGTEXT")
+    private String loginQrCodeData;
+
+    @Column(name = "booking_qr_code_data", columnDefinition = "LONGTEXT")
+    private String bookingQrCodeData;
+
+    @Column(name = "logo_url", length = 512)
+    private String logoUrl;
+
+    @Column(name = "cover_image_url", length = 512)
+    private String coverImageUrl;
+
+    @Column(precision = 10, scale = 8)
+    private java.math.BigDecimal latitude;
+
+    @Column(precision = 11, scale = 8)
+    private java.math.BigDecimal longitude;
+
+    @Column(name = "min_cancel_notice_hours", nullable = false)
+    @Builder.Default
+    private Integer minCancelNoticeHours = 2;
+
+    @Column(name = "max_advance_booking_days", nullable = false)
+    @Builder.Default
+    private Integer maxAdvanceBookingDays = 14;
+
+    @Column(name = "auto_confirm_walkins", nullable = false)
+    @Builder.Default
+    private Boolean autoConfirmWalkins = true;
+
+    @Column(name = "operating_hours_json", columnDefinition = "TEXT")
+    private String operatingHoursJson;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
