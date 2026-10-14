@@ -3,6 +3,10 @@ module.exports = {
   content: [
     "./*.html",
     "./dashboard/**/*.html",
+    "./portal/**/*.html",
+    "./admin/**/*.html",
+    "./booking/**/*.html",
+    "./book/**/*.html",
     "./src/js/**/*.js",
   ],
   darkMode: "class",
@@ -26,8 +30,5 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require("@tailwindcss/forms"),
-    require("@tailwindcss/typography"),
-  ],
+  plugins: [],
 };

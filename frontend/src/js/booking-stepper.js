@@ -21,6 +21,7 @@ import { Store } from "./store.js";
 // ==========================================
 export function getAssetBase() {
   const isInsideSubfolder = window.location.pathname.includes("/book/") ||
+                            window.location.pathname.includes("/booking/") ||
                             window.location.pathname.includes("/dashboard/") ||
                             window.location.pathname.includes("/portal/");
   return isInsideSubfolder ? ".." : ".";
@@ -111,7 +112,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let slug = urlParams.get("slug") || urlParams.get("id");
   if (!slug) {
     const segments = window.location.pathname.split("/").filter(Boolean);
-    const bookIdx = segments.indexOf("book");
+    let bookIdx = segments.indexOf("booking");
+    if (bookIdx === -1) bookIdx = segments.indexOf("book");
     if (bookIdx !== -1 && segments[bookIdx + 1]) {
       slug = segments[bookIdx + 1].replace(/\.html$/, "");
     }

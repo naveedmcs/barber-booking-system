@@ -12,24 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <!-- Tailwind CSS Output & Config -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            dark: { bg: '#0B0F17', card: '#111827', border: '#1F2937' },
-            luxury: { gold: '#F59E0B', goldHover: '#D97706', emerald: '#10B981' }
-          },
-          fontFamily: {
-            sans: ['Inter', 'IBM Plex Sans Arabic', 'system-ui', 'sans-serif']
-          }
-        }
-      }
-    }
-  </script>
+  <!-- Compiled Design System Stylesheet -->
   <link rel="stylesheet" href="../src/css/output.css" />
 
   <style>
@@ -48,6 +31,7 @@
 </head>
 <body class="bg-[#0B0F17] text-slate-100 font-sans antialiased min-h-screen selection:bg-[#F59E0B] selection:text-slate-950 relative overflow-x-hidden pb-28 sm:pb-28">
 
+  <!-- Subtle Radial Background Glow -->
   <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[900px] h-[400px] bg-gradient-to-b from-[#F59E0B]/10 to-transparent blur-3xl pointer-events-none -z-10"></div>
 
   <!-- Sticky Mobile-Friendly Header with Hold Timer -->
@@ -58,36 +42,42 @@
           <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#F59E0B] to-amber-600 flex items-center justify-center text-slate-950 font-black text-sm shadow-md">
             💈
           </div>
-          <span class="font-bold text-sm tracking-tight text-white hidden sm:inline" id="header-brand-name">Barber Booking</span>
+          <div>
+            <span class="text-[9px] uppercase tracking-widest text-[#F59E0B] font-bold block">LUXURY SALON BOOKING</span>
+            <h1 id="shop-title" class="text-sm sm:text-base font-extrabold text-white tracking-tight leading-none truncate max-w-[200px] sm:max-w-xs">
+              SALON BOOKING
+            </h1>
+          </div>
         </a>
       </div>
 
-      <!-- Real-Time Slot Hold Countdown Badge (Steps 3-4) -->
-      <div id="hold-timer-container" class="hidden items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs font-semibold">
-        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-        <span>Hold: </span>
-        <span id="hold-timer-display" class="font-bold text-white">05:00</span>
+      <!-- 5-Minute Hold Timer Pill (Shown dynamically upon slot selection) -->
+      <div id="hold-timer-container" class="hidden flex-col items-end">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[#F59E0B] text-[11px] sm:text-xs font-mono font-bold shadow-lg shadow-[#F59E0B]/10">
+          <svg class="w-3 h-3 animate-spin text-[#F59E0B]" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span>Hold: <strong id="timer-display">05:00</strong></span>
+        </div>
       </div>
+    </div>
 
-      <!-- Quick Phone / Support Trigger -->
-      <div>
-        <a id="header-salon-phone-link" href="tel:0501234567" class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-[#F59E0B] transition flex items-center gap-1.5">
-          <span>📞</span>
-          <span class="hidden sm:inline" id="header-salon-phone-text">Call Salon</span>
-        </a>
-      </div>
+    <!-- Animated Countdown Progress Bar -->
+    <div id="timer-bar-container" class="w-full bg-slate-800/50 h-1 hidden">
+      <div id="timer-progress" class="h-1 bg-gradient-to-r from-[#F59E0B] to-emerald-400 w-full transition-all duration-1000 ease-linear"></div>
     </div>
   </header>
 
-  <!-- Main Booking App Container -->
-  <main id="booking-app" class="max-w-3xl mx-auto px-4 pt-4 sm:pt-6 space-y-4 sm:space-y-6">
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
-    <!-- 6-Step Visual Stepper Bar -->
-    <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-2.5 sm:p-4 backdrop-blur-sm shadow-lg">
-      <div class="grid grid-cols-6 gap-1 text-center" id="stepper-indicator">
+    <!-- 6-Step Full-Visibility Grid Stepper (100% visible on mobile, zero overflow or hidden steps) -->
+    <div class="mb-5 bg-slate-900/60 p-2 sm:p-3 rounded-2xl border border-slate-800/80">
+      <div class="grid grid-cols-6 gap-1 w-full text-center">
         <div class="step-nav-item cursor-pointer" data-step="0">
-          <div class="step-icon w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[11px] sm:text-xs bg-[#F59E0B] text-slate-950 mx-auto shadow-md">0</div>
-          <span class="step-label text-[9px] sm:text-xs font-semibold text-amber-400 block mt-1 truncate">Salon</span>
+          <div class="step-icon w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[11px] sm:text-xs bg-[#F59E0B] text-slate-950 ring-2 sm:ring-4 ring-[#F59E0B]/30 mx-auto">0</div>
+          <span class="step-label text-[9px] sm:text-xs font-bold text-[#F59E0B] block mt-1 truncate">Salon</span>
         </div>
 
         <div class="step-nav-item cursor-pointer" data-step="1">
@@ -116,12 +106,13 @@
         </div>
       </div>
 
+      <!-- Connecting Progress Track -->
       <div class="w-full bg-slate-800 h-1 rounded-full mt-2 sm:mt-2.5 overflow-hidden">
         <div id="stepper-overall-progress" class="bg-gradient-to-r from-[#F59E0B] to-emerald-400 h-1 rounded-full transition-all duration-300 w-0"></div>
       </div>
     </div>
 
-    <!-- Dynamic Step Content -->
+    <!-- Step Container Content (Rendered dynamically by booking-stepper.js) -->
     <div id="step-content" class="backdrop-blur-md bg-white/[0.03] border border-white/10 rounded-2xl p-4 sm:p-6 shadow-2xl transition-all duration-200">
       <div class="space-y-4 animate-pulse">
         <div class="h-44 bg-slate-800/60 rounded-xl"></div>
@@ -132,6 +123,7 @@
 
   </main>
 
+  <!-- Stepper Script -->
   <script type="module" src="../src/js/booking-stepper.js"></script>
 </body>
 </html>

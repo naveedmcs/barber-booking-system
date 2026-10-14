@@ -43,7 +43,10 @@
 | **FEAT-PAY-01** | Moyasar Payment Auto-Approval | `POST /api/payments/webhook` | **COMPLETED** | Sprint 1 (Payments) |
 | **FEAT-SLOT-01**| 5-Minute Slot Hold with Redis Locks | `POST /api/slots/hold` | **COMPLETED** | Sprint 2 (Concurrency) |
 | **FEAT-SLOT-02**| Booking Confirmation & RFC-5545 .ics | `POST /api/bookings/{id}/confirm`<br>`GET /api/bookings/{id}/calendar` | **COMPLETED** | Sprint 2 (Booking) |
-| **FEAT-BOOK-01**| **Customer Booking Funnel (Mobile-First)** | `/book/:salonSlug`<br>`/book.html?slug={slug}` | **COMPLETED** | Sprint 6 (Customer Funnel) |
+| **FEAT-BOOK-01**| **Customer Booking Funnel (Mobile-First)** | `/booking.html?slug={slug}`<br>Aliases: `/booking/`, `/book.html` | **COMPLETED** | Sprint 6 (Customer Funnel) |
+| **FEAT-MOD-01** | **Route De-duplication & Canonicalization** | `/booking.html` (Canonical)<br>`/book.html` -> 1-line redirect | **COMPLETED** | Sprint 7 (Architecture & Refactor) |
+| **FEAT-MOD-02** | **Dependency & Integration Pruning** | Pruned `@tailwindcss/forms`, `@tailwindcss/typography`, SockJS/Stomp CDN | **COMPLETED** | Sprint 7 (Architecture & Refactor) |
+| **FEAT-MOD-03** | **Module Decomposition & Types/Lib Extraction**| `/types/enums.js`, `/lib/validators.js`, `/lib/formatting.js`, `/lib/calendar.js`, `/lib/api-client.js` | **COMPLETED** | Sprint 7 (Architecture & Refactor) |
 | **FEAT-WS-01**  | Live Schedule Synchronization | WebSocket STOMP Broker `/ws`<br>`/topic/shop/{id}/slots` | **COMPLETED** | Sprint 3 (Real-Time) |
 
 ---

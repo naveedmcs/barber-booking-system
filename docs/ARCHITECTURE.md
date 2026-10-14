@@ -183,7 +183,7 @@ Engineered in `SlotLockService.java` and `SalonPortalController.java`.
 
 ## 7. Mobile-Optimized Customer Booking Funnel Subsystem
 
-Engineered in `frontend/book.html`, `frontend/src/js/booking-stepper.js`, and `frontend/book/index.html`.
+Engineered in `frontend/booking.html`, `frontend/src/js/booking-stepper.js`, and `frontend/booking/index.html` (with backwards-compatible aliases at `frontend/book.html` and `frontend/book/index.html`).
 
 ### 7.1 Contextual Default Asset Fallbacks (`FallbackAssets`)
 - **Brand Logo (`FallbackAssets.getBrandLogo`)**: Zero-latency data URI SVG monogram badge with radial background (`#1E293B` to `#0B0F17`), 24K gold border (`#F59E0B`), and dynamic salon initials.
@@ -198,12 +198,12 @@ Engineered in `frontend/book.html`, `frontend/src/js/booking-stepper.js`, and `f
 - Automatically marks past slots on the current day as unavailable, and disables conflicting slots registered in `Store.getBookings()`.
 
 ### 7.3 Dual Calendar & Navigation Integration
-- **Apple / iPhone Calendar (`downloadIcsCalendarFile`)**:
+- **Apple / iPhone Calendar (`downloadIcsCalendarFile` & `lib/calendar.js`)**:
   * RFC-5545 compliant `.ics` payload.
   * Timezone: `TZID:Asia/Riyadh` (`AST UTC+3`).
   * Pre-configured alarm: `BEGIN:VALARM`, `TRIGGER:-PT1H`, `ACTION:DISPLAY`.
   * Formatted description embedding booking reference code, barber, services, customer notes, and prominent cancellation advisory.
-- **Google / Android Calendar (`getGoogleCalendarWebUrl`)**:
+- **Google / Android Calendar (`getGoogleCalendarWebUrl` & `lib/calendar.js`)**:
   * Direct web intent template URL (`https://calendar.google.com/calendar/render?action=TEMPLATE&...`).
   * Timezone locked to `ctz=Asia/Riyadh` with start/end ISO timestamps.
 - **Zero-Cost Map Routing**:
@@ -222,3 +222,115 @@ Engineered in `com.barberapp.service.SlotHoldCleanupTask`.
    - Safely releases Redisson slot lock: `slotLockService.releaseSlotHold(booking.getBarber().getId(), booking.getSlotStart())`.
    - Transitions booking entity status from `HOLD` to `CANCELLED`.
    - Emits structured info logs documenting freed chair intervals and booking IDs.
+
+---
+
+## 9. Canonical Folder Structure Rules
+
+To maintain high code quality, modularity, and zero dead code, all additions must adhere to the standard directory hierarchy:
+
+```
+frontend/src/js/
+├── components/                # Reusable presentation primitives
+│   └── ui/                    # modal.js, drawer.js, toast.js, badge.js
+├── features/                  # Domain-bounded functional modules
+│   ├── admin/                 # Super admin tabs: overview, salons, access-control, audit, settings
+│   ├── portal/                # Salon tenant modules: dashboard, staff, services, settings, analytics
+│   ├── booking/               # Customer booking wizard steps (0 through 5)
+│   └── authentication/        # auth-service.js, auth-guard.js, tenant-context.js
+├── lib/                       # Pure shared business logic & adapters
+│   ├── api-client.js          # Unified fetch client with Bearer auth injection
+│   ├── validators.js          # Saudi phone regex, email, HTML escaper
+│   ├── formatting.js          # Currency SAR, dates, slots, durations
+│   ├── calendar.js            # Dual Apple/Google calendar exporters
+│   ├── qr-client.js           # Client-side QR generation & ZIP downloads
+│   └── store.js               # LocalStorage persistence adapter & mock seeds
+└── types/                     # Shared models and immutable enums
+    └── enums.js               # BookingStatus, UserRole, PlatformRole, TenantRole, SubscriptionPlan
+```
+
+### Architectural Constraints:
+1. **Zero Monoliths**: No single file may exceed 500 lines. Domain logic must be split into feature modules.
+2. **Import Hierarchy**: Features may import from `lib/`, `types/`, and `components/`. Primitives in `lib/` must never import from `features/`.
+3. **No Direct Hardcoding of Enums**: Always import status and role constants from `types/enums.js`.
+
+---
+
+## 10. Environment Variables & Configuration Inventory
+
+| Variable | Scope | Default Setting | Description |
+| :--- | :--- | :--- | :--- |
+| `SERVER_PORT` | Backend | `8080` | Spring Boot HTTP listening port. |
+| `SPRING_DATASOURCE_URL` | Backend | `jdbc:mysql://localhost:3307/barber_saas` | MySQL JDBC connection string (Port 3307 mapped to container). |
+| `SPRING_DATASOURCE_USERNAME` | Backend | `barber_user` | Database authentication username. |
+| `SPRING_DATASOURCE_PASSWORD` | Backend | `barber_password` | Database password. |
+| `SPRING_DATA_REDIS_HOST` | Backend | `localhost` | Redis server hostname for distributed locking. |
+| `SPRING_DATA_REDIS_PORT` | Backend | `6379` | Redis server port. |
+| `JWT_SECRET` | Backend | `bbr-super-secret-key-256bit-min-security-barberapp-ksa-2026` | 256-bit cryptographic secret for signing JWT access tokens. |
+| `JWT_EXPIRATION_MS` | Backend | `86400000` (24 Hours) | JWT token lifespan in milliseconds. |
+| `MEDIA_UPLOAD_DIR` | Backend | `uploads` | Base local filesystem directory for salon gallery and avatar storage. |
+| `TUNNEL_PORT` | Dev Scripts | `3000` | Target local frontend server port for `scripts/tunnel.sh`. |
+| `TUNNEL_USER` | Dev Scripts | `admin` | HTTP Basic Auth username for public mobile tunnel access. |
+| `TUNNEL_PASS` | Dev Scripts | `BarberDev2026!` | HTTP Basic Auth password for public mobile tunnel access. |
+
+---
+
+## 11. Relational Database Schema & Relationships
+
+```mermaid
+erDiagram
+    SHOPS ||--o{ BARBERS : employs
+    SHOPS ||--o{ SERVICE_ITEMS : offers
+    SHOPS ||--o{ BOOKINGS : hosts
+    SHOPS ||--o{ SALON_IMAGES : showcases
+    SHOPS ||--o{ WORKING_HOURS : operates
+    USERS ||--o| SHOPS : owns
+    BARBERS ||--o{ BOOKINGS : serves
+    SERVICE_ITEMS ||--o{ BOOKINGS : includes
+    CUSTOMERS ||--o{ BOOKINGS : books
+    USERS ||--o{ AUDIT_LOGS : generates
+
+    SHOPS {
+        bigint id PK
+        string name
+        string slug UK
+        string phone
+        string city
+        string subscription_plan
+        string booking_url
+        string qr_code_url
+        boolean is_active
+    }
+
+    BARBERS {
+        bigint id PK
+        bigint shop_id FK
+        string name
+        string title
+        string skills
+        string avatar_url
+        boolean is_active
+        timestamp deleted_at
+    }
+
+    BOOKINGS {
+        bigint id PK
+        bigint shop_id FK
+        bigint barber_id FK
+        bigint service_id FK
+        bigint customer_id FK
+        timestamp slot_start
+        timestamp slot_end
+        string status
+        string reference_code UK
+        string cancellation_reason
+    }
+
+    SALON_IMAGES {
+        bigint id PK
+        bigint shop_id FK
+        string image_url
+        int display_order
+        boolean is_cover
+    }
+```
