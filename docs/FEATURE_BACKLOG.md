@@ -55,6 +55,7 @@
 | **FEAT-AUTH-04**| **Cryptographic Password Reset Engine** | `POST /api/auth/forgot-password`<br>`POST /api/auth/reset-password`<br>`V9__create_password_resets_table.sql` | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
 | **FEAT-AUTH-05**| **Role-Governed Authority Router & Redirection** | Dynamic post-login matrix across Admin, Salon Owner, Staff, Customer | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
 | **FEAT-AUTH-06**| **Super Admin CLI Seed Provisioning** | Idempotent CLI script `npm run seed:admin` (`scripts/seed-admin.js`) | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
+| **FEAT-QA-01**  | **Automated Test Suite & Quality Assurance Protocol** | `npm test` (Vitest), `tests/integration/*`, `tests/e2e/*`, `docs/TEST_CASES.md` (23/23 tests passing) | **COMPLETED** | Sprint 9 (Automated Quality Assurance) |
 
 ---
 
@@ -488,6 +489,18 @@ The Salon Portal provides dedicated, multi-tenant workspace environments for sal
 4. **Audit Logging & Concurrency Sweeper**:
    - Emits `CUSTOMER_SLOT_HOLD` and `CUSTOMER_BOOKING_CONFIRMED` audit records.
    - Background `@Scheduled` worker (`SlotHoldCleanupTask`) automatically sweeps expired holds and releases Redisson locks.
+
+### 5.12 Feature Specification: Automated Test Suite & Quality Assurance Protocol (`FEAT-QA-01`)
+1. **Zero-Mock Policy & Real Infrastructure Execution**:
+   - Executes against live Spring Boot REST API endpoints on `http://localhost:8080`.
+   - Backed by live MySQL 8.0 (port 3307) and live Redis 7.0 (port 6379). Zero mocked queries or mock servers.
+2. **Comprehensive Test Matrix Categorization (`docs/TEST_CASES.md`)**:
+   - **Module 1 (TC-AUTH)**: Role escalation prevention, multi-role credential verification (`SUPER_ADMIN`, `SALON_OWNER`, `SALON_STAFF`, `CUSTOMER`), single-use cryptographic password reset tokens, tenant boundary isolation, and Saudi mobile number format enforcement.
+   - **Module 2 (TC-OPS)**: Staff scoping guards (preventing peer appointment reads and unauthorized cancellations), financial analytics SAR summation filtering strictly `COMPLETED` appointments, maximum 5-photo gallery cap, and appointment conflict guard on staff deactivation.
+   - **Module 3 (TC-BOOK)**: Slot buffer time overlap protection, concurrent booking race condition resolution via Redisson distributed locks, RFC-5545 `.ics` calendar generation with UTC timestamps, and double-booking constraint enforcement.
+   - **Module 4 (TC-E2E)**: Complete 6-step customer booking lifecycle from storefront inspection to downloadable calendar receipt.
+3. **Execution & CI Verification**:
+   - Single canonical command: `npm test` running 23 automated integration and end-to-end tests with 100% pass rate.
 
 ---
 

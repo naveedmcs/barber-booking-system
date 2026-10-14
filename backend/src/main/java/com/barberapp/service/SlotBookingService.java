@@ -25,6 +25,7 @@ public class SlotBookingService {
     private final BarberRepository barberRepository;
     private final ServiceItemRepository serviceItemRepository;
     private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
     private final AuditLogService auditLogService;
 
     @Transactional
@@ -68,7 +69,18 @@ public class SlotBookingService {
             ServiceItem service = serviceItemRepository.findById(serviceId)
                     .orElseThrow(() -> new IllegalArgumentException("Service not found with ID: " + serviceId));
             Customer customer = customerRepository.findById(customerId)
-                    .orElseThrow(() -> new IllegalArgumentException("Customer not found with ID: " + customerId));
+                    .or(() -> customerRepository.findByUserId(customerId))
+                    .orElseGet(() -> {
+                        return userRepository.findById(customerId).map(u -> {
+                            Customer newCust = Customer.builder()
+                                    .user(u)
+                                    .fullName(u.getFullName())
+                                    .email(u.getEmail())
+                                    .phone(u.getPhone())
+                                    .build();
+                            return customerRepository.save(newCust);
+                        }).orElseThrow(() -> new IllegalArgumentException("Customer not found with ID: " + customerId));
+                    });
 
             Booking booking = Booking.builder()
                     .shop(shop)

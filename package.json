@@ -1,0 +1,17 @@
+{
+  "name": "barber-booking-system",
+  "version": "1.0.0",
+  "description": "Multi-Tenant Salon & Barber Booking SaaS Platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "seed:admin": "node scripts/seed-admin.js"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.3"
+  }
+}
