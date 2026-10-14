@@ -1,292 +1,116 @@
-# System Routing & API Specifications
-## BarberApp KSA — Canonical Routes, APIs & Payloads
-
-This document provides a single, authoritative reference for all user journeys, frontend routing definitions, redirect aliases, and REST API contracts across the platform.
-
----
+# System Routing & REST API Reference
 
 ## 1. Frontend Route Registry
 
-All frontend applications are served as modern, responsive vanilla ES-module web clients.
+### 1.1 Route Table by Role & Journey
 
-| User Role / Journey | Canonical URL | File Path | Route Type & Notes |
-| :--- | :--- | :--- | :--- |
-| **Public Visitor / Landing** | `/index.html` or `/` | `frontend/index.html` | Public landing page, platform overview, CTA buttons. |
-| **Customer Booking Funnel (Canonical)** | `/booking/?slug={slug}` | `frontend/booking/index.html` | **Single canonical physical booking page**. Role-aware (Customer, Staff, Salon Owner, Super Admin), 6-step funnel, concurrency hold timer, dual calendar export (.ics / Google). |
-| **Customer Booking (HTTP Redirects)** | `/book`, `/book.html`, `/booking.html` | *Middleware Redirect* | **Server 302 redirect middleware** (`middleware.js` & `tunnel.sh`) cleanly mapping legacy paths to `/booking/` (preserving query params & hash). |
-| **Public Salon Directory** | `/salons.html` | `frontend/salons.html` | Search, filter by city/rating, view salon cards and booking CTAs. |
-| **Salon Onboarding** | `/register.html` | `frontend/register.html` | 4-step wizard: plan selection, owner info, salon creation, QR display. |
-| **Unified Portal Login & Customer Sign-Up** | `/login.html` | `frontend/login.html` | Unified credentials login for Super Admins, Salon Owners, Staff, and Customer registration tab. |
-| **Password Reset: Forgot Password** | `/forgot-password.html` | `frontend/forgot-password.html` | Password recovery initiation form (dispatches 32-byte recovery link). |
-| **Password Reset: Set New Password** | `/reset-password.html?token={token}` | `frontend/reset-password.html` | Password update completion form validating single-use token. |
-| **Salon Owner Portal** | `/portal/index.html` | `frontend/portal/index.html` | Multi-tenant salon dashboard, appointments, walk-in modal, calendar. |
-| **Salon Portal: Staff** | `/portal/staff/index.html` | `frontend/portal/staff/index.html` | Team roster, invite barber, skills tags, shift scheduler. (Alias: `/portal/staff.html`) |
-| **Salon Portal: Services** | `/portal/services/index.html` | `frontend/portal/services/index.html` | Service catalog, pricing, durations, categories. (Alias: `/portal/services.html`) |
-| **Salon Portal: Settings** | `/portal/settings/index.html` | `frontend/portal/settings/index.html` | Operating hours matrix, branding logo/cover, bank info. (Alias: `/portal/settings.html`) |
-| **Platform Super Admin** | `/dashboard/admin.html` | `frontend/dashboard/admin.html` | Full RBAC console, audit trail, salon management, system settings. |
-| **Admin: Access Control** | `/admin/access-control.html` | `frontend/admin/access-control.html` | Redirects to `/dashboard/admin.html#access-control`. |
-| **Admin: Salons Management**| `/admin/salons.html` | `frontend/admin/salons.html` | Redirects to `/dashboard/admin.html#salons`. |
-| **Admin: System Settings** | `/admin/settings.html` | `frontend/admin/settings.html` | Redirects to `/dashboard/admin.html#settings`. |
-| **Admin: Audit Log Viewer** | `/admin/audit.html` | `frontend/admin/audit.html` | Redirects to `/dashboard/admin.html#audit`. |
-| **Salon Standalone Timetable** | `/dashboard/index.html?slug={slug}` | `frontend/dashboard/index.html` | Morning / Afternoon / Evening schedule timetable view with cross-tab broadcast. |
-
-### 1.1 Multi-Role Awareness on `/booking/?slug={slug}`
-
-The single canonical customer booking page (`frontend/booking/index.html`) automatically inspects the current user session (`Store.getCurrentUser()`) and dynamically adapts its UI and capabilities per role:
-
-1. **Customer (Public / Unauthenticated)**:
-   - **Default UI**: Full mobile-friendly 6-step booking stepper (Salon, Services, Barber, Slot, Details, Receipt) with 5-minute concurrency hold timer and dual calendar export (.ics / Google Calendar).
-   - **Privacy Guardrail**: Individual barber phone numbers are strictly hidden from customers across all cards and summaries. Contact information is restricted solely to the verified salon business phone (`shop.phone`).
-   - **Admin Bar**: Fully hidden (`class="hidden"`), no administrative controls rendered.
-
-2. **Salon Owner & Salon Staff**:
-   - **Role Utility Bar**: Subtle, high-contrast top bar displaying:
-     - Identity pill: `👑 Salon Owner` or `💈 Salon Staff`.
-     - Context indicator: `Viewing as [Staff Name / Owner] • [Salon Name]`.
-     - Action toggle: `⚡ Switch to Walk-In Mode` (active state indicates `⚡ Walk-In Mode: ACTIVE`).
-     - Dashboard shortcut: `← Return to Portal Dashboard` (`/portal/index.html#bookings`).
-   - **Walk-In Mode Mechanics**:
-     - Pre-fills the logged-in staff member or owner as the designated barber in Step 2.
-     - Displays an active staff override banner during Step 4 ("Walk-In Mode Active — Auto-confirms appointment into staff portal schedule").
-     - Modifies CTA button to `⚡ Confirm & Auto-Approve Walk-In (Direct to Schedule)`.
-     - Automatically confirms the booking (`status: "CONFIRMED"`, `walkIn: true`) and records an audit log entry (`PORTAL_STAFF_WALKIN_BOOKED`).
-     - Step 5 receipt provides a direct action link back to the live portal schedule.
-
-3. **Platform Super Admin & Support Agent**:
-   - **Role Banner**: Prominent purple administrative preview banner at the top of the viewport:
-     - `🛡️ Platform Super Admin — Admin Preview Mode • Inspecting Storefront: [Salon Name]`.
-     - Direct navigation link: `← Return to Salons Directory` (`/dashboard/admin.html#salons`).
-
----
-
-## 2. Canonical Backend REST API Endpoints
-
-Base URL in local development: `http://localhost:8080`.
-
-### 2.1 Public Authentication, Registration & Password Reset (`/api/auth`, `/api/v1/auth`)
-
-#### `POST /api/auth/login` (Alias: `POST /api/v1/auth/login`)
-- **Description**: Authenticate user credentials against BCrypt database hash and return signed JWT bearer token.
-- **Request Body**:
-  ```json
-  {
-    "email": "owner@goldenscissors.sa",
-    "password": "Owner123!",
-    "rememberMe": true
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
-    "tokenType": "Bearer",
-    "expiresIn": 86400,
-    "user": {
-      "id": 139,
-      "email": "owner@goldenscissors.sa",
-      "fullName": "Tariq Al-Mansoor",
-      "phone": "0501234567",
-      "role": "SALON_OWNER",
-      "salonId": 53,
-      "salonName": "Golden Scissors Salon",
-      "salonSlug": "golden-scissors"
-    }
-  }
-  ```
-- **Errors**: `401 Unauthorized` (`{"error":"Invalid credentials","message":"Invalid email or password"}`), `403 Forbidden` (inactive user).
-
-#### `POST /api/auth/register` (Alias: `POST /api/v1/auth/register`)
-- **Description**: Public customer account registration. Atomically provisions `User` (`role: CUSTOMER`) and linked `Customer` record.
-- **Request Body**:
-  ```json
-  {
-    "fullName": "Fahad Al-Otaibi",
-    "phone": "0512345678",
-    "email": "fahad@example.sa",
-    "password": "CustomerSecurePass123!"
-  }
-  ```
-- **Response `201 Created`**: Returns `AuthResponseDTO` with signed JWT `accessToken` and user object (`role: "CUSTOMER"`).
-- **Errors**: `409 Conflict` (Email or phone already registered), `400 Bad Request` (Invalid Saudi phone format).
-
-#### `POST /api/auth/register-salon` (Alias: `POST /api/shops/register`)
-- **Description**: Public business onboarding. Atomically provisions `Shop` entity and linked `User` (`role: SALON_OWNER`).
-- **Request Body**:
-  ```json
-  {
-    "ownerFullName": "Tariq Al-Mansoor",
-    "ownerEmail": "tariq@newbarbers.sa",
-    "ownerPassword": "SecureOwnerPass123!",
-    "shopName": "New Barbers Lounge",
-    "phone": "0551122334",
-    "city": "Riyadh",
-    "district": "Olaya",
-    "region": "Riyadh Region",
-    "subscriptionPlan": "MONTHLY"
-  }
-  ```
-- **Response `201 Created`**: Returns `AuthResponseDTO` with signed JWT `accessToken` and user object bound via `salonId`.
-
-#### `POST /api/auth/forgot-password`
-- **Description**: Initiates password recovery. Dispatches single-use 32-byte cryptographic token with 60-minute expiry.
-- **Request Body**:
-  ```json
-  {
-    "email": "user@domain.sa"
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "message": "Password reset instructions generated successfully.",
-    "email": "user@domain.sa",
-    "expiresInMinutes": 60,
-    "resetLink": "/reset-password.html?token=8bc644394e0ef78850ee97d88c1fcd01481bb4261f68895af01a5653a013909c",
-    "token": "8bc644394e0ef78850ee97d88c1fcd01481bb4261f68895af01a5653a013909c"
-  }
-  ```
-- **Security Rule**: Returns `200 OK` even if email is not found to prevent user enumeration attacks.
-
-#### `POST /api/auth/reset-password`
-- **Description**: Validates token and updates user password with BCrypt encryption.
-- **Request Body**:
-  ```json
-  {
-    "token": "8bc644394e0ef78850ee97d88c1fcd01481bb4261f68895af01a5653a013909c",
-    "newPassword": "NewStrongPassword456!"
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "message": "Password updated successfully. You may now log in with your new password.",
-    "email": "user@domain.sa"
-  }
-  ```
-- **Errors**: `400 Bad Request` (Token invalid, expired, or already used).
-
-#### `GET /api/auth/me`
-- **Description**: Returns authenticated user session profile. Requires `Authorization: Bearer <token>`.
-
-#### `GET /api/dev/reset-links`
-- **Description**: Development-only endpoint listing active reset links for zero-SMTP local testing.
-
----
-
-### 2.2 Customer Booking Flow (`/api/bookings`, `/api/slots`)
-
-#### `POST /api/bookings/public`
-- **Description**: Public booking creation endpoint called directly by `booking-stepper.js`.
-- **Request Body**:
-  ```json
-  {
-    "shopId": 1,
-    "shopSlug": "golden-scissors",
-    "barberId": 2,
-    "barberName": "Master Barber Ahmed",
-    "serviceId": 10,
-    "serviceName": "Signature Royal Haircut & Beard Shaping",
-    "customerName": "Mohammed Al-Ghamdi",
-    "customerPhone": "0512345678",
-    "customerEmail": "customer@gmail.com",
-    "date": "2026-10-14",
-    "time": "11:00 AM",
-    "slotStart": "2026-10-14T11:00:00",
-    "notes": "Low skin fade, organic oils",
-    "referenceCode": "BBR-84920"
-  }
-  ```
-- **Response `201 Created`**:
-  ```json
-  {
-    "id": 142,
-    "shopId": 1,
-    "shopName": "Golden Scissors Salon",
-    "barberId": 2,
-    "barberName": "Master Barber Ahmed",
-    "serviceName": "Signature Royal Haircut & Beard Shaping",
-    "customerName": "Mohammed Al-Ghamdi",
-    "customerPhone": "0512345678",
-    "slotStart": "2026-10-14T11:00:00",
-    "slotEnd": "2026-10-14T11:45:00",
-    "status": "CONFIRMED",
-    "notes": "Low skin fade, organic oils"
-  }
-  ```
-- **Errors**: `400 Bad Request` (invalid phone or dates), `409 Conflict` (slot double-booked).
-
-#### `POST /api/slots/hold`
-- **Description**: Acquires a 5-minute concurrency hold on a slot via Redis distributed lock.
-- **Request Body**:
-  ```json
-  {
-    "shopId": 1,
-    "barberId": 2,
-    "serviceId": 10,
-    "customerId": 55,
-    "slotStart": "2026-10-14T11:00:00",
-    "slotEnd": "2026-10-14T11:45:00"
-  }
-  ```
-- **Response `201 Created`**: Booking entity with status `HOLD` and `holdExpiresAt` (+5 minutes).
-- **Errors**: `409 Conflict` (`"Slot is currently held or already booked."`).
-
-#### `GET /api/bookings/{id}/calendar`
-- **Description**: Streams RFC-5545 `.ics` file for native calendar import.
-- **Response `200 OK`**: Content-Type `text/calendar;charset=UTF-8`, attachment `appointment-{id}.ics`.
-
----
-
-### 2.3 QR Code Generation Subsystem (`/api/shops/{id}/qr`)
-
-| Method | Endpoint | Query Params | Response Content-Type | Description |
+| Role | Target Journey | Canonical URL | Physical File | Access Control / Scope |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/shops/{id}/qr/booking` | `format=png\|svg`, `size=300` | `image/png` or `image/svg+xml` | Encodes public booking URL (`http://localhost:3000/booking.html?slug={slug}`). |
-| `GET` | `/api/shops/{id}/qr/login` | `format=png\|svg`, `size=300` | `image/png` or `image/svg+xml` | Encodes salon dashboard login URL. |
-| `GET` | `/api/shops/{id}/qr/zip` | *(none)* | `application/zip` | Downloads bundled ZIP package with both SVG and PNG variants. |
+| **Super Admin** | Platform Admin Console | `/dashboard/admin.html` | `frontend/dashboard/admin.html` | Platform-wide RBAC, Audit logs, Shop moderation, Settings |
+| **Super Admin** | Access Control Matrix | `/admin/access-control.html` | *Redirects to `/dashboard/admin.html#access-control`* | Internal staff management & screen permission matrix |
+| **Super Admin** | Salons Moderation | `/admin/salons.html` | *Redirects to `/dashboard/admin.html#salons`* | Tenant shop status (`ACTIVE`, `PENDING`, `SUSPENDED`) |
+| **Super Admin** | Global System Settings | `/admin/settings.html` | *Redirects to `/dashboard/admin.html#settings`* | Platform configs, tax/billing, SMS, feature flags |
+| **Super Admin** | Audit Log Viewer | `/admin/audit.html` | *Redirects to `/dashboard/admin.html#audit`* | Security compliance and audit activity timeline |
+| **Salon Owner** | Owner Portal Dashboard | `/portal/index.html` | `frontend/portal/index.html` | Multi-tenant salon dashboard, calendar, revenue analytics |
+| **Salon Owner** | Staff Roster Management| `/portal/staff/index.html` | `frontend/portal/staff/index.html` | Staff chairs, avatars, status toggle, invite modal |
+| **Salon Owner** | Service Menu Catalog | `/portal/services/index.html` | `frontend/portal/services/index.html` | Service items, pricing, durations, buffer times |
+| **Salon Owner** | Salon Settings & Media | `/portal/settings/index.html` | `frontend/portal/settings/index.html` | Operating hours, bank/tax info, 5-photo gallery cap |
+| **Salon Staff** | Staff Schedule Timetable| `/portal/index.html#schedule` | `frontend/portal/index.html` | Scoped strictly to assigned chair (`staffId`) |
+| **Salon Staff** | Shift Status Toggle | Header status pill | `/api/portal/shift` | Dynamic toggle between `ONLINE` and `OFFLINE` |
+| **Customer** | Storefront & Booking | `/booking/?slug={slug}` | `frontend/booking/index.html` | **Single canonical physical booking page** (6-step funnel) |
+| **Customer** | Directory & Search | `/salons.html` | `frontend/salons.html` | City/district search, rating, salon cards |
+| **Customer** | Customer Self-Registration| `/login.html#register` | `frontend/login.html` | Saudi mobile validation (`05XXXXXXXX`), role = `CUSTOMER` |
+| **Customer** | Forgot Password Request | `/forgot-password.html` | `frontend/forgot-password.html` | Dispatches 60-minute recovery token |
+| **Customer** | Reset Password Submit | `/reset-password.html?token={t}` | `frontend/reset-password.html` | Sets new password via single-use token |
+| **Public** | Platform Landing Page | `/` or `/index.html` | `frontend/index.html` | Marketing hero, salon discovery, business onboarding CTA |
+| **Public** | Salon Business Sign-Up | `/register.html` | `frontend/register.html` | Multi-step onboarding for salon owners |
+| **Public** | Unified Login Gateway | `/login.html` | `frontend/login.html` | Single authentication form for all roles |
+
+### 1.2 Route Aliases & HTTP Redirects
+- `/book`, `/book.html`, `/booking.html` &rarr; `302 Redirect` to `/booking/?slug={slug}` (preserves all query parameters and hash fragments).
 
 ---
 
-### 2.4 Multi-Tenant Salon Owner Portal (`/api/portal/**`)
+## 2. REST API Endpoint Signatures
 
-*All requests require header: `Authorization: Bearer <JWT>` with role `SALON_OWNER` or `SALON_STAFF`.*
+### 2.1 Authentication & Password Recovery (`/api/auth/*`)
 
-#### 1. Context & Appointments
-- `GET /api/portal/context?userId={id}`: Returns `{ salon, user, role, permissions }`.
-- `GET /api/portal/bookings?date=YYYY-MM-DD`: Returns appointments for salon on selected date.
-- `POST /api/portal/walk-in`: Quick manual walk-in appointment creation.
-- `PATCH /api/portal/bookings/{id}/status`: Transition appointment status (`CONFIRMED`, `IN_SERVICE`, `COMPLETED`, `CANCELLED`).
-
-#### 2. Staff Management
-- `GET /api/portal/staff`: Roster of barbers, skills tags, status, and avatars.
-- `POST /api/portal/staff/invite`: Provision new barber with credentials, skills tags, and avatar.
-- `PATCH /api/portal/staff/{id}/status`: Toggle active status (checks upcoming booking conflicts).
-- `DELETE /api/portal/staff/{id}`: Soft-delete barber (`deleted_at = NOW()`, validates conflict).
-- `POST /api/portal/staff/upload-avatar`: Upload barber avatar (max 2MB, JPEG/PNG/WebP).
-
-#### 3. Services Catalog
-- `GET /api/portal/services`: Service items, categories, pricing, duration, and buffer times.
-- `POST /api/portal/services`: Create new service item.
-- `PUT /api/portal/services/{id}`: Update service item.
-- `DELETE /api/portal/services/{id}`: Delete service item.
-
-#### 4. Settings & Media
-- `GET /api/portal/settings`: Operating hours matrix, branding logo/cover, bank details.
-- `PUT /api/portal/settings`: Update salon profile and hours.
-- `POST /api/portal/gallery/upload`: Upload gallery photo (max 5 photos, max 5MB each).
-- `DELETE /api/portal/gallery/{imageId}`: Remove photo from gallery.
-
-#### 5. Financial Analytics
-- `GET /api/portal/analytics/revenue`: Real-time revenue metrics strictly from completed bookings.
+| Method | Endpoint | Access | Request Payload Signature | Response Signature |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Public | `{ email: string, password: string, rememberMe?: boolean }` | `{ accessToken: string, tokenType: "Bearer", expiresIn: number, user: UserDTO }` |
+| `POST` | `/api/auth/register` | Public | `{ fullName: string, phone: string, email: string, password: string }` | `{ accessToken: string, tokenType: "Bearer", user: UserDTO (role: CUSTOMER) }` |
+| `POST` | `/api/auth/register-salon` | Public | `{ ownerFullName, ownerEmail, ownerPhone, ownerPassword, shopName, city, district }` | `{ accessToken: string, user: UserDTO (role: SALON_OWNER, salonId) }` |
+| `POST` | `/api/auth/forgot-password` | Public | `{ email: string }` | `{ message: string, devResetLink?: string }` |
+| `POST` | `/api/auth/reset-password` | Public | `{ token: string, newPassword: string }` | `{ message: string }` |
+| `GET` | `/api/auth/me` | Bearer | *None* | `UserDTO` |
 
 ---
 
-### 2.5 Platform Super Admin (`/api/admin/**`)
+### 2.2 Public Storefronts & Catalogs (`/api/shops/*`)
 
-*All requests require header: `Authorization: Bearer <JWT>` with role `SUPER_ADMIN`.*
+| Method | Endpoint | Access | Query / Path Params | Response Signature |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/shops` | Public | *None* | `List<ShopDTO>` |
+| `GET` | `/api/shops/{id}` | Public | `id: Long` | `ShopDTO` |
+| `GET` | `/api/shops/by-slug/{slug}` | Public | `slug: string` | `ShopDTO` |
+| `GET` | `/api/shops/{id}/barbers` | Public | `id: Long` | `List<BarberDTO>` |
+| `GET` | `/api/shops/{id}/services` | Public | `id: Long` | `List<ServiceItemDTO>` |
+| `GET` | `/api/shops/{id}/gallery` | Public | `id: Long` | `List<SalonImageDTO>` |
 
-- `GET /api/admin/users`: List platform administrators with roles and activity timestamps.
-- `POST /api/admin/users/invite`: Invite platform user (`SUPER_ADMIN` or `SUPPORT_AGENT`).
-- `PATCH /api/admin/users/{id}/role`: Update platform role.
-- `PATCH /api/admin/users/{id}/status`: Toggle active/suspended state.
-- `GET /api/admin/audit-logs`: Query immutable platform audit logs with pagination, user, shop, action, and date filters.
+---
+
+### 2.3 Customer Slot Engine & Booking Funnel (`/api/slots/*`, `/api/bookings/*`)
+
+| Method | Endpoint | Access | Request Payload Signature | Response Signature |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/slots/hold` | Public/Auth | `{ shopId: Long, barberId: Long, serviceId: Long, customerId: Long, slotStart: ISO8601, slotEnd: ISO8601 }` | `Booking` (`status: HOLD`, `holdExpiresAt: NOW+5m`) *(409 if locked/conflict)* |
+| `POST` | `/api/bookings/{id}/confirm` | Public/Auth | Path: `id: Long` | `Booking` (`status: CONFIRMED`) |
+| `GET` | `/api/bookings/{id}/calendar` | Public | Path: `id: Long` | `text/calendar` (RFC-5545 `.ics` with UTC timestamps & -PT1H alarm) |
+| `POST` | `/api/bookings/public` | Public | `{ shopId: Long, barberId: Long, serviceId: Long, customerName: string, customerPhone: string, customerEmail: string, slotStart: ISO8601, slotEnd: ISO8601, notes?: string }` | `Booking` (`status: CONFIRMED`) *(400/409 on overlap)* |
+
+---
+
+### 2.4 Multi-Tenant Salon Portal Operations (`/api/portal/*`)
+*All endpoints require Bearer JWT token (`SALON_OWNER` or `SALON_STAFF`).*
+
+| Method | Endpoint | Allowed Roles | Request Signature | Response Signature |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/portal/bookings` | Owner, Staff | Query: `barberId?: Long, date?: YYYY-MM-DD` | `List<Booking>` *(Staff scoped to own `barberId`)* |
+| `PATCH` | `/api/portal/bookings/{id}/status` | Owner, Staff | `{ status: "ARRIVED" \| "IN_SERVICE" \| "COMPLETED" \| "NO_SHOW" \| "CANCELLED", reason?: string }` | `Booking` *(Staff forbidden from cancelling: 403)* |
+| `POST` | `/api/portal/bookings/walk-in` | Owner, Staff | `{ barberId: Long, serviceId: Long, customerName: string, customerPhone: string, slotStart: ISO8601, slotEnd: ISO8601 }` | `Booking` (`status: CONFIRMED`, `walkIn: true`) |
+| `GET` | `/api/portal/analytics/revenue` | Owner only | *None* | `{ todayEarnings: number, weekEarnings: number, monthEarnings: number, totalEarnings: number, totalCompletedBookings: number, currency: "SAR" }` |
+| `GET` | `/api/portal/staff` | Owner, Staff | *None* | `List<Barber>` |
+| `POST` | `/api/portal/staff` | Owner only | `{ name: string, specialty?: string, phone?: string, email?: string, skills?: string }` | `Barber` |
+| `PUT` | `/api/portal/staff/{id}` | Owner only | `{ name: string, specialty?: string, phone?: string, email?: string, skills?: string }` | `Barber` |
+| `PATCH` | `/api/portal/staff/{id}/status` | Owner only | `{ status: string, isActive: boolean }` | `Barber` *(409 Conflict if active future appointments exist)* |
+| `POST` | `/api/portal/staff/{id}/avatar` | Owner only | `multipart/form-data` (`file`) | `{ avatarUrl: string }` |
+| `PATCH` | `/api/portal/shift` | Staff only | `{ status: "ONLINE" \| "OFFLINE" }` | `{ status: string, isActive: boolean }` |
+| `GET` | `/api/portal/services` | Owner, Staff | *None* | `List<ServiceItem>` |
+| `POST` | `/api/portal/services` | Owner only | `{ name: string, price: number, durationMinutes: number, bufferMinutes: number, category: string, isVisible: boolean }` | `ServiceItem` |
+| `PUT` | `/api/portal/services/{id}` | Owner only | Service fields update | `ServiceItem` |
+| `GET` | `/api/portal/settings` | Owner only | *None* | `Shop` |
+| `PUT` | `/api/portal/settings` | Owner only | `{ name, phone, city, district, fullAddress, operatingHoursJson, autoConfirmWalkins }` | `Shop` |
+| `GET` | `/api/portal/gallery` | Owner only | *None* | `List<SalonImage>` |
+| `POST` | `/api/portal/gallery/upload` | Owner only | `multipart/form-data` (`image`) | `SalonImage` *(400 Bad Request if >= 5 photos cap reached)* |
+| `DELETE` | `/api/portal/gallery/{id}` | Owner only | Path: `id: Long` | `204 No Content` |
+
+---
+
+### 2.5 Super Admin Platform Operations (`/api/admin/*`, `/api/shops/{id}/status`)
+*All endpoints require Bearer JWT token with `SUPER_ADMIN` role.*
+
+| Method | Endpoint | Purpose | Request Payload | Response Signature |
+| :--- | :--- | :--- | :--- | :--- |
+| `PATCH` | `/api/shops/{id}/status` | Moderate salon status | `{ status: "ACTIVE" \| "PENDING" \| "SUSPENDED", reason?: string }` | `ShopDTO` |
+| `GET` | `/api/admin/audit-logs` | Query security audit log | Query: `page, limit, shopId, action` | `Page<AuditLog>` |
+| `GET` | `/api/admin/users` | List internal platform staff | *None* | `List<UserDTO>` |
+| `POST` | `/api/admin/users/invite` | Invite internal admin staff | `{ email, fullName, role: "SUPER_ADMIN" \| "SUPPORT_AGENT" }` | `UserDTO` |
+| `GET` | `/api/admin/permissions` | Get RBAC permission matrix | *None* | `Map<Role, List<String>>` |
+| `PUT` | `/api/admin/permissions` | Update screen permissions | `{ role, permissions: string[] }` | `200 OK` |
+
+---
+
+### 2.6 Real-Time WebSocket Channel
+- **Protocol**: STOMP over WebSocket (`/ws`)
+- **Subscription Topic**: `/topic/shop/{shopId}/slots`
+- **Broadcast Events**: Slot Holds (`SLOT_HELD`), Booking Confirmations (`BOOKING_CONFIRMED`), Cancellations (`SLOT_RELEASED`), Walk-In Arrivals (`WALKIN_CONFIRMED`).
