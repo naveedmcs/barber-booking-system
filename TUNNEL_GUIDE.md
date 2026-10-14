@@ -11,11 +11,11 @@ This guide documents the temporary, password-protected public tunnel workflow fo
 
 | Destination | Direct Link | Authentication Method |
 | :--- | :--- | :--- |
-| **✨ 1-Tap Mobile Booking Funnel** | [⚡ Open Customer Booking Funnel](https://dare-cad-expression-forty.trycloudflare.com/booking.html?slug=golden-scissors&auth=BarberDev2026!) | **Zero Typing Needed** (Auto-authenticates & stores cookie) |
-| **Direct Customer Booking** | [`booking.html?slug=golden-scissors`](https://dare-cad-expression-forty.trycloudflare.com/booking.html?slug=golden-scissors) | Enter credentials via browser popup or on-screen form |
-| **Salon Owner Portal** | [`portal/index.html`](https://dare-cad-expression-forty.trycloudflare.com/portal/index.html) | Protected by Gate + Salon Owner JWT session |
-| **Super Admin Portal** | [`admin.html`](https://dare-cad-expression-forty.trycloudflare.com/admin.html) | Protected by Gate + Admin Session |
-| **Base Public URL** | [`https://dare-cad-expression-forty.trycloudflare.com`](https://dare-cad-expression-forty.trycloudflare.com) | HTTP Basic Auth Gate |
+| **✨ 1-Tap Mobile Booking Funnel** | [⚡ Open Customer Booking Funnel](https://responsibility-nebraska-math-buffer.trycloudflare.com/booking/?slug=golden-scissors&auth=BarberDev2026!) | **Zero Typing Needed** (Auto-authenticates & stores cookie) |
+| **Direct Customer Booking** | [`booking/?slug=golden-scissors`](https://responsibility-nebraska-math-buffer.trycloudflare.com/booking/?slug=golden-scissors) | Enter credentials via browser popup or on-screen form |
+| **Salon Owner Portal** | [`portal/index.html`](https://responsibility-nebraska-math-buffer.trycloudflare.com/portal/index.html) | Protected by Gate + Salon Owner JWT session |
+| **Super Admin Portal** | [`admin.html`](https://responsibility-nebraska-math-buffer.trycloudflare.com/admin.html) | Protected by Gate + Admin Session |
+| **Base Public URL** | [`https://responsibility-nebraska-math-buffer.trycloudflare.com`](https://responsibility-nebraska-math-buffer.trycloudflare.com) | HTTP Basic Auth Gate |
 
 ### 🔐 Active Credentials
 - **Username:** `admin` *(or `Admin` or `TUNNEL_USER`)*
@@ -82,11 +82,11 @@ When `./scripts/tunnel.sh` launches, it outputs a secure session banner:
   🎉 SECURE PUBLIC TUNNEL ACTIVE
 =================================================================
   Public URL:       https://<random-subdomain>.trycloudflare.com
-  Direct Booking:   https://<random-subdomain>.trycloudflare.com/booking.html?slug=golden-scissors
+  Direct Booking:   https://<random-subdomain>.trycloudflare.com/booking/?slug=golden-scissors
   Salon Portal:     https://<random-subdomain>.trycloudflare.com/portal/index.html
 
   ✨ 1-TAP INSTANT ACCESS LINK (Zero Typing Needed):
-  https://<random-subdomain>.trycloudflare.com/booking.html?slug=golden-scissors&auth=BarberDev2026!
+  https://<random-subdomain>.trycloudflare.com/booking/?slug=golden-scissors&auth=BarberDev2026!
 
   Accepted Credentials (HTTP Basic Auth or Web Form):
     Username:       admin  (or TUNNEL_USER)

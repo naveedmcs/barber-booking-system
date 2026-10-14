@@ -57,6 +57,23 @@ graph TD
 6. `V6__add_staff_services_and_settings_fields.sql`: Weekly roster JSON, service buffer times, and operating hours JSON.
 7. `V7__add_salon_gallery_and_media_support.sql`: Table `salon_images` and media upload indices.
 8. `V8__add_staff_skills_and_lifecycle_support.sql`: Barber `skills` column, `deleted_at` timestamp for soft-deletion, and tenant active index.
+9. `V9__create_password_resets_table.sql`: Table `password_resets` for SHA-256 hashed single-use recovery tokens and user FK.
+
+### Schema Detail: `password_resets` (V9 Migration)
+```sql
+CREATE TABLE password_resets (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    token_hash VARCHAR(64) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_password_resets_hash_used ON password_resets(token_hash, used);
+CREATE INDEX idx_password_resets_user ON password_resets(user_id);
+```
 
 ### Schema Detail: `salon_images` (V7 Migration)
 ```sql
@@ -183,7 +200,7 @@ Engineered in `SlotLockService.java` and `SalonPortalController.java`.
 
 ## 7. Mobile-Optimized Customer Booking Funnel Subsystem
 
-Engineered in `frontend/booking.html`, `frontend/src/js/booking-stepper.js`, and `frontend/booking/index.html` (with backwards-compatible aliases at `frontend/book.html` and `frontend/book/index.html`).
+Engineered in the single canonical file `frontend/booking/index.html` and `frontend/src/js/booking-stepper.js` (with HTTP 302 redirect middleware mapping legacy `/book`, `/book.html`, and `/booking.html` directly to `/booking/`).
 
 ### 7.1 Contextual Default Asset Fallbacks (`FallbackAssets`)
 - **Brand Logo (`FallbackAssets.getBrandLogo`)**: Zero-latency data URI SVG monogram badge with radial background (`#1E293B` to `#0B0F17`), 24K gold border (`#F59E0B`), and dynamic salon initials.
@@ -256,7 +273,66 @@ frontend/src/js/
 
 ---
 
-## 10. Environment Variables & Configuration Inventory
+## 10. Unified Authentication, Registration & Password Reset Engine
+
+Centralized in `AuthController.java` (`/api/auth/*` and `/api/v1/auth/*`) with zero in-memory mocks, zero plaintext passwords, and real MySQL database persistence.
+
+### 10.1 BCrypt Password Encryption Policy
+- Passwords are encrypted exclusively via Spring Security's `BCryptPasswordEncoder` (Cost factor 10, format `$2a$10$...`).
+- Raw plaintext passwords are never stored, logged, or serialized.
+- Legacy plaintext fallback logic has been completely purged from the codebase.
+- User authentication matches incoming plaintext credentials against BCrypt hashes using `passwordEncoder.matches(raw, hash)`.
+
+### 10.2 Role Governance & Registration Policy
+1. **Customer Self-Registration (`POST /api/auth/register`)**:
+   - Fields: Full Name, Saudi Mobile (`05xxxxxxxx`), Email, Password.
+   - Normalizes Saudi telephone formats (`+9665...`, `9665...`, `05...`) into standard 10-digit format.
+   - Enforces unique email and unique phone constraints (`HTTP 409 Conflict` on duplicates).
+   - Atomically provisions a `User` entity (`role = CUSTOMER`) and a linked `Customer` record.
+   - Issues a signed 24h JWT token for instant checkout continuation.
+2. **Salon Owner Business Onboarding (`POST /api/auth/register-salon`)**:
+   - Atomic `@Transactional` creation of `Shop` and `User` (`role = SALON_OWNER`).
+   - Tenant isolation binding: `owner.setSalonId(shop.getId())`.
+   - Generates initial salon operating hours and services catalog.
+3. **Salon Staff Provisioning (Public Registration Blocked)**:
+   - Public registration for staff is strictly prohibited (`403 Forbidden`).
+   - Staff accounts are provisioned exclusively by authorized salon owners or super administrators via `POST /api/portal/staff`.
+4. **Super Administrator Provisioning (Public Registration Blocked)**:
+   - Super admin registration forms are strictly prohibited.
+   - Seeded exclusively via the idempotent CLI script `npm run seed:admin` (`scripts/seed-admin.js`) which verifies if a `SUPER_ADMIN` exists before creating `admin@barberapp.sa`.
+
+### 10.3 Cryptographic Password Recovery Lifecycle
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Client
+    participant Auth as AuthController
+    participant DB as MySQL (password_resets)
+    participant Hash as SHA-256 Engine
+
+    User->>Auth: POST /api/auth/forgot-password { email }
+    Auth->>Auth: SecureRandom 32-byte token (64 hex chars)
+    Auth->>Hash: SHA-256(rawToken) -> tokenHash
+    Auth->>DB: INSERT INTO password_resets (user_id, token_hash, expires_at, used=false)
+    Auth-->>User: 200 OK { message, resetLink, expiresInMinutes: 60 }
+    
+    Note over User,Auth: User opens reset password screen with token
+    
+    User->>Auth: POST /api/auth/reset-password { token, newPassword }
+    Auth->>Hash: SHA-256(token) -> tokenHash
+    Auth->>DB: SELECT WHERE token_hash = ? AND used = false AND expires_at > NOW()
+    alt Token Valid & Unused
+        Auth->>DB: UPDATE users SET password = BCrypt(newPassword)
+        Auth->>DB: UPDATE password_resets SET used = true
+        Auth-->>User: 200 OK { message: "Password updated successfully" }
+    else Token Expired or Re-used
+        Auth-->>User: 400 Bad Request { error: "Invalid or Expired Token" }
+    end
+```
+
+---
+
+## 11. Environment Variables & Configuration Inventory
 
 | Variable | Scope | Default Setting | Description |
 | :--- | :--- | :--- | :--- |
@@ -275,7 +351,7 @@ frontend/src/js/
 
 ---
 
-## 11. Relational Database Schema & Relationships
+## 12. Relational Database Schema & Relationships
 
 ```mermaid
 erDiagram
@@ -285,10 +361,32 @@ erDiagram
     SHOPS ||--o{ SALON_IMAGES : showcases
     SHOPS ||--o{ WORKING_HOURS : operates
     USERS ||--o| SHOPS : owns
+    USERS ||--o{ PASSWORD_RESETS : requests
     BARBERS ||--o{ BOOKINGS : serves
     SERVICE_ITEMS ||--o{ BOOKINGS : includes
     CUSTOMERS ||--o{ BOOKINGS : books
     USERS ||--o{ AUDIT_LOGS : generates
+
+    USERS {
+        bigint id PK
+        string email UK
+        string password
+        string full_name
+        string phone
+        string role
+        bigint salon_id FK
+        boolean active
+        timestamp last_login
+    }
+
+    PASSWORD_RESETS {
+        bigint id PK
+        bigint user_id FK
+        string token_hash
+        timestamp expires_at
+        boolean used
+        timestamp created_at
+    }
 
     SHOPS {
         bigint id PK

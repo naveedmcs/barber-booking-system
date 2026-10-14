@@ -349,7 +349,7 @@ function normalizeShop(s, idx = 0) {
   const ownerEmail = s.owner ? s.owner.email : (s.ownerEmail || "owner@goldenscissors.sa");
   const crNumber = s.crNumber || `CR-1010${String(id).padStart(4, "0")}`;
   const loginUrl = s.loginUrl || `http://localhost:3000/dashboard/index.html?slug=${slug}`;
-  const bookingUrl = s.bookingUrl || `http://localhost:3000/booking.html?slug=${slug}`;
+  const bookingUrl = s.bookingUrl || `http://localhost:3000/booking/?slug=${slug}`;
   const createdAt = s.createdAt || "2026-10-10T12:00:00";
 
   return {
@@ -1347,7 +1347,7 @@ function renderSalonDirectoryWorkspace(container) {
                           ⋯
                         </button>
                         <div id="row-menu-${s.id}" class="hidden absolute right-0 mt-1 w-44 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl z-30 py-1 text-left text-xs">
-                          <a href="../booking.html?slug=${s.slug}" target="_blank" class="block px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                          <a href="../booking/?slug=${s.slug}" target="_blank" class="block px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white transition">
                             📅 Public Booking Flow
                           </a>
                           <button data-action="copy-booking-url" data-url="${s.bookingUrl}" class="w-full text-left px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white transition">
@@ -1890,7 +1890,7 @@ function openSalonProfileDrawer(shop) {
 
     <!-- Quick External Navigation Links -->
     <div class="space-y-2 pt-1">
-      <a href="../booking.html?slug=${shop.slug}" target="_blank" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition flex items-center justify-between">
+      <a href="../booking/?slug=${shop.slug}" target="_blank" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition flex items-center justify-between">
         <span class="flex items-center gap-2"><span>📅</span> Open Customer Booking Interface</span>
         <span>→</span>
       </a>
@@ -2946,7 +2946,7 @@ function renderActiveTabContent(activeTab, d, errors) {
         field: "enableMultiBarberSelect",
         icon: "✂️",
         title: "Multi-Barber Selection during Booking",
-        desc: "Allows customers on `/book.html` to browse individual master barbers or pick 'Any Available Barber'."
+        desc: "Allows customers on `/booking/` to browse individual master barbers or pick 'Any Available Barber'."
       },
       {
         field: "enableSlotHoldCountdown",

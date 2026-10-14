@@ -405,7 +405,7 @@ function initFormSubmission() {
     // URLs
     const origin = window.location.origin || "http://localhost:3000";
     const loginUrl = `${origin}/dashboard/index.html?slug=${slug}`;
-    const bookingUrl = `${origin}/booking.html?slug=${slug}`;
+    const bookingUrl = `${origin}/booking/?slug=${slug}`;
 
     newShop.loginUrl = loginUrl;
     newShop.bookingUrl = bookingUrl;

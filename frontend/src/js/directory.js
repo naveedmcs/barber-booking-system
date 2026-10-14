@@ -115,7 +115,7 @@ function renderDirectory() {
     const status = shop.status || "ACTIVE";
     const origin = window.location.origin || "http://localhost:3000";
     const loginUrl = shop.loginUrl || `${origin}/dashboard/index.html?slug=${shop.slug}`;
-    const bookingUrl = shop.bookingUrl || `${origin}/booking.html?slug=${shop.slug}`;
+    const bookingUrl = shop.bookingUrl || `${origin}/booking/?slug=${shop.slug}`;
 
     const statusBadgeClass =
       status === "ACTIVE"
@@ -184,7 +184,7 @@ function renderDirectory() {
               <a href="./dashboard/index.html?slug=${shop.slug}" class="py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700 hover:border-[#F59E0B] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-sm">
                 <span>📋 Schedule</span>
               </a>
-              <a href="./booking.html?slug=${shop.slug}" target="_blank" class="py-2 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition">
+              <a href="./booking/?slug=${shop.slug}" target="_blank" class="py-2 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition">
                 <span>🔗 Booking</span>
               </a>
             </div>
@@ -269,7 +269,7 @@ function renderDirectory() {
         if (shop && !shop._dirLoginQr) {
           const origin = window.location.origin || "http://localhost:3000";
           const loginUrl = shop.loginUrl || `${origin}/dashboard/index.html?slug=${shop.slug}`;
-          const bookingUrl = shop.bookingUrl || `${origin}/booking.html?slug=${shop.slug}`;
+          const bookingUrl = shop.bookingUrl || `${origin}/booking/?slug=${shop.slug}`;
           shop._dirLoginQr = await QrHelper.renderQr(`#dir-login-qr-${shop.slug}`, loginUrl, 85);
           shop._dirBookingQr = await QrHelper.renderQr(`#dir-booking-qr-${shop.slug}`, bookingUrl, 85);
         }
@@ -325,7 +325,7 @@ function renderDirectory() {
       if (!shop) return;
       const origin = window.location.origin || "http://localhost:3000";
       const loginUrl = shop.loginUrl || `${origin}/dashboard/index.html?slug=${shop.slug}`;
-      const bookingUrl = shop.bookingUrl || `${origin}/booking.html?slug=${shop.slug}`;
+      const bookingUrl = shop.bookingUrl || `${origin}/booking/?slug=${shop.slug}`;
 
       QrHelper.downloadZip({
         filename: `${slug}-qr-codes.zip`,

@@ -1568,8 +1568,8 @@ function renderSettingsView(container, context) {
       <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
         <h4 class="text-xs font-bold text-white">Public Customer Booking URL</h4>
         <div class="flex items-center gap-2">
-          <input type="text" readonly value="http://localhost:3000/booking.html?slug=${shop.slug || "golden-scissors"}" class="w-full bg-slate-900 border border-slate-800 text-amber-400 font-mono text-xs rounded-xl px-3 py-2" />
-          <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs shrink-0" onclick="navigator.clipboard.writeText('http://localhost:3000/booking.html?slug=${shop.slug || "golden-scissors"}')">Copy</button>
+          <input type="text" readonly value="http://localhost:3000/booking/?slug=${shop.slug || "golden-scissors"}" class="w-full bg-slate-900 border border-slate-800 text-amber-400 font-mono text-xs rounded-xl px-3 py-2" />
+          <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs shrink-0" onclick="navigator.clipboard.writeText('http://localhost:3000/booking/?slug=${shop.slug || "golden-scissors"}')">Copy</button>
         </div>
       </div>
     </div>

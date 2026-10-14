@@ -22,7 +22,7 @@ import java.util.zip.ZipOutputStream;
 @Slf4j
 public class QrCodeService {
 
-    private static final String BASE_BOOKING_URL = "http://localhost:3000/booking.html?slug=";
+    private static final String BASE_BOOKING_URL = "http://localhost:3000/booking/?slug=";
     private static final String BASE_LOGIN_URL = "http://localhost:3000/dashboard/index.html?slug=";
 
     public byte[] generateQrCodePng(String text, int width, int height) throws WriterException, IOException {

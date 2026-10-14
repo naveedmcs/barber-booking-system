@@ -7,6 +7,7 @@ import com.barberapp.entity.enums.UserRole;
 import com.barberapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,21 +28,27 @@ public class ShopService {
     private final CustomerRepository customerRepository;
     private final QrCodeService qrCodeService;
     private final AuditLogService auditLogService;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public Shop registerShop(ShopRegistrationDto dto) {
+        String rawPassword = (dto.getOwnerPassword() != null && !dto.getOwnerPassword().isBlank())
+                ? dto.getOwnerPassword().trim()
+                : "Owner123!";
+
         User owner = User.builder()
                 .fullName(dto.getOwnerFullName())
-                .email(dto.getOwnerEmail())
-                .password(dto.getOwnerPassword())
+                .email(dto.getOwnerEmail().trim().toLowerCase())
+                .password(passwordEncoder.encode(rawPassword))
                 .phone(dto.getPhone())
-                .role(UserRole.SHOP_OWNER)
+                .role(UserRole.SALON_OWNER)
+                .active(true)
                 .build();
         owner = userRepository.save(owner);
 
         String tempSlug = generateSlug(dto.getShopName()) + "-" + UUID.randomUUID().toString().substring(0, 6);
         String loginUrl = "http://localhost:3000/dashboard/index.html?slug=" + tempSlug;
-        String bookingUrl = "http://localhost:3000/booking.html?slug=" + tempSlug;
+        String bookingUrl = "http://localhost:3000/booking/?slug=" + tempSlug;
 
         String loginQrCode = null;
         String bookingQrCode = null;
@@ -72,6 +79,9 @@ public class ShopService {
                 .build();
 
         Shop savedShop = shopRepository.save(shop);
+
+        owner.setSalonId(savedShop.getId());
+        userRepository.save(owner);
 
         // Seed default Barber for the shop
         Barber barber = Barber.builder()

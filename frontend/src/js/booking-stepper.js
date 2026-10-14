@@ -95,7 +95,8 @@ const STATE = {
   bookingRef: null,
   confirmedBooking: null,
   timerSeconds: 300,
-  timerInterval: null
+  timerInterval: null,
+  walkInMode: false
 };
 
 let BARBERS = [];
@@ -161,6 +162,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Wire interactive step navigation in header
   wireStepNavClicks();
 
+  // Render role-aware utility banner if logged in as Admin, Salon Owner, or Staff
+  initRoleAwareHeader();
+
   renderApp();
 });
 
@@ -175,6 +179,104 @@ function wireStepNavClicks() {
       }
     });
   });
+}
+
+// ==========================================
+// ROLE-AWARE HEADER & WALK-IN MODE ENGINE
+// ==========================================
+function initRoleAwareHeader() {
+  const container = document.getElementById("role-utility-bar");
+  if (!container) return;
+
+  const currentUser = Store.getCurrentUser();
+
+  // Public Customer / Unauthenticated: keep bar hidden
+  if (!currentUser || currentUser.role === "CUSTOMER" || !currentUser.role) {
+    container.className = "hidden";
+    container.innerHTML = "";
+    return;
+  }
+
+  const role = currentUser.role;
+  const shopName = STATE.shop?.name || "Salon";
+
+  // Super Admin / Support Agent
+  if (role === "SUPER_ADMIN" || role === "SUPPORT_AGENT") {
+    container.className = "block bg-gradient-to-r from-purple-950 via-indigo-950 to-purple-950 border-b border-purple-500/30 px-3 sm:px-4 py-2 sm:py-2.5 text-xs text-purple-200 sticky top-0 z-50 shadow-md";
+    container.innerHTML = `
+      <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase tracking-wider">
+            🛡️ Platform Super Admin
+          </span>
+          <span class="font-medium text-purple-100">
+            Admin Preview Mode &bull; Inspecting Storefront: <strong class="text-white">${shopName}</strong>
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="../dashboard/admin.html#salons" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-white font-semibold text-xs border border-purple-400/30 transition shadow-sm">
+            <span>← Return to Salons Directory</span>
+          </a>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Salon Owner & Salon Staff
+  if (role === "SALON_OWNER" || role === "SALON_STAFF" || role === "SHOP_OWNER" || role === "STAFF") {
+    const isOwner = role === "SALON_OWNER" || role === "SHOP_OWNER";
+    const userName = currentUser.fullName || currentUser.name || (isOwner ? "Salon Owner" : "Staff Member");
+
+    container.className = "block bg-gradient-to-r from-slate-900 via-amber-950/40 to-slate-900 border-b border-amber-500/30 px-3 sm:px-4 py-2 sm:py-2.5 text-xs text-amber-200 sticky top-0 z-50 shadow-md";
+    container.innerHTML = `
+      <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-wider">
+            ${isOwner ? "👑 Salon Owner" : "💈 Salon Staff"}
+          </span>
+          <span class="font-medium text-slate-200">
+            Viewing as <strong class="text-white">${userName}</strong> &bull; <span class="text-amber-300/90 font-semibold">${shopName}</span>
+          </span>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button id="toggle-walkin-mode-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg transition text-xs font-bold ${
+            STATE.walkInMode
+              ? "bg-[#F59E0B] text-slate-950 font-extrabold shadow-md shadow-[#F59E0B]/20"
+              : "bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40"
+          }">
+            <span>${STATE.walkInMode ? "⚡ Walk-In Mode: ACTIVE" : "⚡ Switch to Walk-In Mode"}</span>
+          </button>
+          <a href="../portal/index.html#bookings" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition text-xs">
+            <span>← Return to Portal Dashboard</span>
+          </a>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("toggle-walkin-mode-btn")?.addEventListener("click", () => {
+      STATE.walkInMode = !STATE.walkInMode;
+      if (STATE.walkInMode) {
+        // Pre-fill staff member
+        const matchingBarber = BARBERS.find(b =>
+          (currentUser.fullName && b.name.toLowerCase().includes(currentUser.fullName.toLowerCase())) ||
+          (currentUser.staffId && String(b.id) === String(currentUser.staffId))
+        );
+        if (matchingBarber) {
+          STATE.selectedBarber = matchingBarber;
+        } else if (!STATE.selectedBarber && BARBERS.length > 0) {
+          STATE.selectedBarber = BARBERS[0];
+        }
+      }
+      initRoleAwareHeader();
+      renderApp();
+    });
+    return;
+  }
+
+  // Any other unknown role falls back to hidden
+  container.className = "hidden";
+  container.innerHTML = "";
 }
 
 // ==========================================
@@ -718,6 +820,20 @@ function renderStep4CustomerDetails(container) {
         </button>
       </div>
 
+      ${STATE.walkInMode ? `
+        <!-- Active Walk-In Mode Staff Banner -->
+        <div class="p-3 bg-amber-500/15 border border-[#F59E0B]/50 rounded-xl flex items-center justify-between text-xs text-[#F59E0B]">
+          <div class="flex items-center gap-2">
+            <span class="text-base font-bold">⚡</span>
+            <div>
+              <span class="font-bold block">Walk-In Mode Active</span>
+              <span class="text-[11px] text-slate-300">Auto-confirms appointment into ${STATE.selectedBarber?.name || "Staff"}'s portal schedule</span>
+            </div>
+          </div>
+          <span class="text-[10px] bg-[#F59E0B] text-slate-950 font-black px-2 py-0.5 rounded uppercase">Staff Override</span>
+        </div>
+      ` : ''}
+
       <!-- Instant Review Card -->
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 text-left space-y-2.5 sm:space-y-3 shadow-lg">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -804,7 +920,7 @@ function renderStep4CustomerDetails(container) {
         </div>
 
         <button type="submit" class="w-full min-h-[48px] py-3.5 bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-slate-950 font-extrabold text-sm rounded-xl shadow-lg shadow-[#F59E0B]/20 hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2">
-          <span>✓ Confirm & Schedule Appointment</span>
+          <span>${STATE.walkInMode ? "⚡ Confirm & Auto-Approve Walk-In (Direct to Schedule)" : "✓ Confirm & Schedule Appointment"}</span>
         </button>
       </form>
     </div>
@@ -851,6 +967,13 @@ function renderStep4CustomerDetails(container) {
     const totalPriceCalc = STATE.selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
     const serviceNames = STATE.selectedServices.map(s => s.name).join(", ");
 
+    let finalNotes = notes;
+    if (STATE.walkInMode && !finalNotes.includes("[Walk-In]")) {
+      const currentUser = Store.getCurrentUser();
+      const staffName = currentUser?.fullName || "Staff";
+      finalNotes = finalNotes ? `[Walk-In by ${staffName}] ${finalNotes}` : `[Walk-In by ${staffName}]`;
+    }
+
     // Persist real record to backend MySQL database
     let dbBooking = null;
     try {
@@ -868,7 +991,7 @@ function renderStep4CustomerDetails(container) {
         date: STATE.selectedDate,
         time: STATE.selectedSlot,
         slotStart: convertSlotToIso(STATE.selectedDate, STATE.selectedSlot),
-        notes: notes,
+        notes: finalNotes,
         referenceCode: STATE.bookingRef
       };
       const res = await fetch(`${backendBase}/api/bookings/public`, {
@@ -897,8 +1020,9 @@ function renderStep4CustomerDetails(container) {
       service: serviceNames,
       price: totalPriceCalc,
       referenceCode: STATE.bookingRef,
-      notes: notes,
+      notes: finalNotes,
       status: "CONFIRMED",
+      walkIn: STATE.walkInMode,
       slotStart: dbBooking?.slotStart || convertSlotToIso(STATE.selectedDate, STATE.selectedSlot)
     });
 
@@ -907,8 +1031,8 @@ function renderStep4CustomerDetails(container) {
     Store.addAuditLog(
       STATE.customer.phone,
       STATE.shop?.name || STATE.shopSlug,
-      "CUSTOMER_BOOKING_CONFIRMED",
-      `Booking ${STATE.bookingRef} confirmed for ${STATE.customer.fullName} (${STATE.customer.phone}) with ${STATE.selectedBarber.name} on ${STATE.selectedDate} @ ${STATE.selectedSlot}. Services: [${serviceNames}], Total: ${totalPriceCalc} SAR. Notes: ${notes || "None"}. Cancellation contact: ${STATE.shop?.phone || "0501234567"}`
+      STATE.walkInMode ? "PORTAL_STAFF_WALKIN_BOOKED" : "CUSTOMER_BOOKING_CONFIRMED",
+      `Booking ${STATE.bookingRef} confirmed for ${STATE.customer.fullName} (${STATE.customer.phone}) with ${STATE.selectedBarber.name} on ${STATE.selectedDate} @ ${STATE.selectedSlot}. Services: [${serviceNames}], Total: ${totalPriceCalc} SAR. Notes: ${finalNotes || "None"}. Mode: ${STATE.walkInMode ? "STAFF_WALKIN" : "CUSTOMER_SELF_SERVICE"}`
     );
 
     clearInterval(STATE.timerInterval);
@@ -1033,6 +1157,13 @@ function renderStep5Confirmation(container) {
           <span class="text-base">📍</span>
           <span>View Salon Location on Map ↗</span>
         </a>
+
+        ${(STATE.walkInMode || (Store.getCurrentUser() && (Store.getCurrentUser().role === "SALON_OWNER" || Store.getCurrentUser().role === "SALON_STAFF" || Store.getCurrentUser().role === "SHOP_OWNER" || Store.getCurrentUser().role === "STAFF"))) ? `
+          <!-- 4. Staff/Owner Walk-In Shortcut: Return to Portal Schedule -->
+          <a href="../portal/index.html#bookings" class="w-full min-h-[48px] py-3 px-4 bg-amber-500/15 border border-[#F59E0B]/40 hover:bg-amber-500/25 text-[#F59E0B] font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md">
+            <span>⚡ View in Portal Schedule & Appointments ↗</span>
+          </a>
+        ` : ''}
       </div>
 
       <!-- Reset / Book Another -->

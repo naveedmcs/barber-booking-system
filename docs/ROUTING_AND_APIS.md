@@ -12,13 +12,13 @@ All frontend applications are served as modern, responsive vanilla ES-module web
 | User Role / Journey | Canonical URL | File Path | Route Type & Notes |
 | :--- | :--- | :--- | :--- |
 | **Public Visitor / Landing** | `/index.html` or `/` | `frontend/index.html` | Public landing page, platform overview, CTA buttons. |
-| **Customer Booking Funnel** | `/booking.html?slug={slug}` | `frontend/booking.html` | **Canonical 6-step customer booking funnel**. Full database sync, hold countdown timer, dual calendar export. |
-| **Customer Booking (Subfolder)**| `/booking/?slug={slug}` | `frontend/booking/index.html` | Canonical directory alias for web servers mapping subfolders. |
-| **Customer Booking (Legacy Alias)**| `/book.html?slug={slug}` | `frontend/book.html` | **Automatic client redirect** -> `/booking.html` (preserves query params & hash). |
-| **Customer Booking (Legacy Subfolder)**| `/book/?slug={slug}` | `frontend/book/index.html` | **Automatic client redirect** -> `../booking.html` (preserves query params & hash). |
+| **Customer Booking Funnel (Canonical)** | `/booking/?slug={slug}` | `frontend/booking/index.html` | **Single canonical physical booking page**. Role-aware (Customer, Staff, Salon Owner, Super Admin), 6-step funnel, concurrency hold timer, dual calendar export (.ics / Google). |
+| **Customer Booking (HTTP Redirects)** | `/book`, `/book.html`, `/booking.html` | *Middleware Redirect* | **Server 302 redirect middleware** (`middleware.js` & `tunnel.sh`) cleanly mapping legacy paths to `/booking/` (preserving query params & hash). |
 | **Public Salon Directory** | `/salons.html` | `frontend/salons.html` | Search, filter by city/rating, view salon cards and booking CTAs. |
 | **Salon Onboarding** | `/register.html` | `frontend/register.html` | 4-step wizard: plan selection, owner info, salon creation, QR display. |
-| **Unified Portal Login** | `/login.html` | `frontend/login.html` | Unified credentials login for Super Admins, Salon Owners, and Staff. |
+| **Unified Portal Login & Customer Sign-Up** | `/login.html` | `frontend/login.html` | Unified credentials login for Super Admins, Salon Owners, Staff, and Customer registration tab. |
+| **Password Reset: Forgot Password** | `/forgot-password.html` | `frontend/forgot-password.html` | Password recovery initiation form (dispatches 32-byte recovery link). |
+| **Password Reset: Set New Password** | `/reset-password.html?token={token}` | `frontend/reset-password.html` | Password update completion form validating single-use token. |
 | **Salon Owner Portal** | `/portal/index.html` | `frontend/portal/index.html` | Multi-tenant salon dashboard, appointments, walk-in modal, calendar. |
 | **Salon Portal: Staff** | `/portal/staff/index.html` | `frontend/portal/staff/index.html` | Team roster, invite barber, skills tags, shift scheduler. (Alias: `/portal/staff.html`) |
 | **Salon Portal: Services** | `/portal/services/index.html` | `frontend/portal/services/index.html` | Service catalog, pricing, durations, categories. (Alias: `/portal/services.html`) |
@@ -30,52 +30,146 @@ All frontend applications are served as modern, responsive vanilla ES-module web
 | **Admin: Audit Log Viewer** | `/admin/audit.html` | `frontend/admin/audit.html` | Redirects to `/dashboard/admin.html#audit`. |
 | **Salon Standalone Timetable** | `/dashboard/index.html?slug={slug}` | `frontend/dashboard/index.html` | Morning / Afternoon / Evening schedule timetable view with cross-tab broadcast. |
 
+### 1.1 Multi-Role Awareness on `/booking/?slug={slug}`
+
+The single canonical customer booking page (`frontend/booking/index.html`) automatically inspects the current user session (`Store.getCurrentUser()`) and dynamically adapts its UI and capabilities per role:
+
+1. **Customer (Public / Unauthenticated)**:
+   - **Default UI**: Full mobile-friendly 6-step booking stepper (Salon, Services, Barber, Slot, Details, Receipt) with 5-minute concurrency hold timer and dual calendar export (.ics / Google Calendar).
+   - **Privacy Guardrail**: Individual barber phone numbers are strictly hidden from customers across all cards and summaries. Contact information is restricted solely to the verified salon business phone (`shop.phone`).
+   - **Admin Bar**: Fully hidden (`class="hidden"`), no administrative controls rendered.
+
+2. **Salon Owner & Salon Staff**:
+   - **Role Utility Bar**: Subtle, high-contrast top bar displaying:
+     - Identity pill: `👑 Salon Owner` or `💈 Salon Staff`.
+     - Context indicator: `Viewing as [Staff Name / Owner] • [Salon Name]`.
+     - Action toggle: `⚡ Switch to Walk-In Mode` (active state indicates `⚡ Walk-In Mode: ACTIVE`).
+     - Dashboard shortcut: `← Return to Portal Dashboard` (`/portal/index.html#bookings`).
+   - **Walk-In Mode Mechanics**:
+     - Pre-fills the logged-in staff member or owner as the designated barber in Step 2.
+     - Displays an active staff override banner during Step 4 ("Walk-In Mode Active — Auto-confirms appointment into staff portal schedule").
+     - Modifies CTA button to `⚡ Confirm & Auto-Approve Walk-In (Direct to Schedule)`.
+     - Automatically confirms the booking (`status: "CONFIRMED"`, `walkIn: true`) and records an audit log entry (`PORTAL_STAFF_WALKIN_BOOKED`).
+     - Step 5 receipt provides a direct action link back to the live portal schedule.
+
+3. **Platform Super Admin & Support Agent**:
+   - **Role Banner**: Prominent purple administrative preview banner at the top of the viewport:
+     - `🛡️ Platform Super Admin — Admin Preview Mode • Inspecting Storefront: [Salon Name]`.
+     - Direct navigation link: `← Return to Salons Directory` (`/dashboard/admin.html#salons`).
+
 ---
 
 ## 2. Canonical Backend REST API Endpoints
 
 Base URL in local development: `http://localhost:8080`.
 
-### 2.1 Public Authentication & Onboarding (`/api/v1/auth`, `/api/shops`)
+### 2.1 Public Authentication, Registration & Password Reset (`/api/auth`, `/api/v1/auth`)
 
-#### `POST /api/v1/auth/login`
-- **Description**: Authenticate user credentials and return JWT bearer token.
+#### `POST /api/auth/login` (Alias: `POST /api/v1/auth/login`)
+- **Description**: Authenticate user credentials against BCrypt database hash and return signed JWT bearer token.
 - **Request Body**:
   ```json
   {
-    "email": "owner@salon.sa",
-    "password": "Password123!"
+    "email": "owner@goldenscissors.sa",
+    "password": "Owner123!",
+    "rememberMe": true
   }
   ```
 - **Response `200 OK`**:
   ```json
   {
-    "token": "eyJhbGciOiJIUzI1NiJ9...",
-    "userId": 10,
-    "email": "owner@salon.sa",
-    "fullName": "Fahad Al-Harbi",
-    "role": "SALON_OWNER",
-    "salonId": 1,
-    "salonSlug": "golden-scissors"
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": 86400,
+    "user": {
+      "id": 139,
+      "email": "owner@goldenscissors.sa",
+      "fullName": "Tariq Al-Mansoor",
+      "phone": "0501234567",
+      "role": "SALON_OWNER",
+      "salonId": 53,
+      "salonName": "Golden Scissors Salon",
+      "salonSlug": "golden-scissors"
+    }
   }
   ```
-- **Errors**: `401 Unauthorized` (invalid credentials), `403 Forbidden` (suspended account).
+- **Errors**: `401 Unauthorized` (`{"error":"Invalid credentials","message":"Invalid email or password"}`), `403 Forbidden` (inactive user).
 
-#### `POST /api/shops/register`
-- **Description**: Register a new salon tenant and provision owner account.
+#### `POST /api/auth/register` (Alias: `POST /api/v1/auth/register`)
+- **Description**: Public customer account registration. Atomically provisions `User` (`role: CUSTOMER`) and linked `Customer` record.
 - **Request Body**:
   ```json
   {
-    "ownerName": "Fahad Al-Harbi",
-    "ownerEmail": "owner@salon.sa",
-    "password": "Password123!",
-    "phone": "0501234567",
-    "shopName": "Royal Fade Barber",
-    "city": "Riyadh",
-    "plan": "PROFESSIONAL"
+    "fullName": "Fahad Al-Otaibi",
+    "phone": "0512345678",
+    "email": "fahad@example.sa",
+    "password": "CustomerSecurePass123!"
   }
   ```
-- **Response `201 Created`**: Returns created Shop entity with `bookingUrl` and `qrCodeUrl`.
+- **Response `201 Created`**: Returns `AuthResponseDTO` with signed JWT `accessToken` and user object (`role: "CUSTOMER"`).
+- **Errors**: `409 Conflict` (Email or phone already registered), `400 Bad Request` (Invalid Saudi phone format).
+
+#### `POST /api/auth/register-salon` (Alias: `POST /api/shops/register`)
+- **Description**: Public business onboarding. Atomically provisions `Shop` entity and linked `User` (`role: SALON_OWNER`).
+- **Request Body**:
+  ```json
+  {
+    "ownerFullName": "Tariq Al-Mansoor",
+    "ownerEmail": "tariq@newbarbers.sa",
+    "ownerPassword": "SecureOwnerPass123!",
+    "shopName": "New Barbers Lounge",
+    "phone": "0551122334",
+    "city": "Riyadh",
+    "district": "Olaya",
+    "region": "Riyadh Region",
+    "subscriptionPlan": "MONTHLY"
+  }
+  ```
+- **Response `201 Created`**: Returns `AuthResponseDTO` with signed JWT `accessToken` and user object bound via `salonId`.
+
+#### `POST /api/auth/forgot-password`
+- **Description**: Initiates password recovery. Dispatches single-use 32-byte cryptographic token with 60-minute expiry.
+- **Request Body**:
+  ```json
+  {
+    "email": "user@domain.sa"
+  }
+  ```
+- **Response `200 OK`**:
+  ```json
+  {
+    "message": "Password reset instructions generated successfully.",
+    "email": "user@domain.sa",
+    "expiresInMinutes": 60,
+    "resetLink": "/reset-password.html?token=8bc644394e0ef78850ee97d88c1fcd01481bb4261f68895af01a5653a013909c",
+    "token": "8bc644394e0ef78850ee97d88c1fcd01481bb4261f68895af01a5653a013909c"
+  }
+  ```
+- **Security Rule**: Returns `200 OK` even if email is not found to prevent user enumeration attacks.
+
+#### `POST /api/auth/reset-password`
+- **Description**: Validates token and updates user password with BCrypt encryption.
+- **Request Body**:
+  ```json
+  {
+    "token": "8bc644394e0ef78850ee97d88c1fcd01481bb4261f68895af01a5653a013909c",
+    "newPassword": "NewStrongPassword456!"
+  }
+  ```
+- **Response `200 OK`**:
+  ```json
+  {
+    "message": "Password updated successfully. You may now log in with your new password.",
+    "email": "user@domain.sa"
+  }
+  ```
+- **Errors**: `400 Bad Request` (Token invalid, expired, or already used).
+
+#### `GET /api/auth/me`
+- **Description**: Returns authenticated user session profile. Requires `Authorization: Bearer <token>`.
+
+#### `GET /api/dev/reset-links`
+- **Description**: Development-only endpoint listing active reset links for zero-SMTP local testing.
 
 ---
 

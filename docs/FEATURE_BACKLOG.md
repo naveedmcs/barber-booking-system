@@ -43,11 +43,18 @@
 | **FEAT-PAY-01** | Moyasar Payment Auto-Approval | `POST /api/payments/webhook` | **COMPLETED** | Sprint 1 (Payments) |
 | **FEAT-SLOT-01**| 5-Minute Slot Hold with Redis Locks | `POST /api/slots/hold` | **COMPLETED** | Sprint 2 (Concurrency) |
 | **FEAT-SLOT-02**| Booking Confirmation & RFC-5545 .ics | `POST /api/bookings/{id}/confirm`<br>`GET /api/bookings/{id}/calendar` | **COMPLETED** | Sprint 2 (Booking) |
-| **FEAT-BOOK-01**| **Customer Booking Funnel (Mobile-First)** | `/booking.html?slug={slug}`<br>Aliases: `/booking/`, `/book.html` | **COMPLETED** | Sprint 6 (Customer Funnel) |
-| **FEAT-MOD-01** | **Route De-duplication & Canonicalization** | `/booking.html` (Canonical)<br>`/book.html` -> 1-line redirect | **COMPLETED** | Sprint 7 (Architecture & Refactor) |
+| **FEAT-BOOK-01**| **Customer Booking Funnel (Mobile-First)** | `/booking/?slug={slug}` (Canonical single physical source of truth)<br>Role-Aware (Public Customer, Salon Owner, Staff, Admin) | **COMPLETED** | Sprint 6 (Customer Funnel) |
+| **FEAT-MOD-01** | **Route De-duplication & Canonicalization** | Canonical: `frontend/booking/index.html`<br>Deleted `book.html`, `book/index.html`, `booking.html`<br>HTTP 302 middleware for legacy aliases | **COMPLETED** | Sprint 7 (Architecture & Refactor) |
+| **FEAT-BOOK-02**| **Booking Route Consolidation & Role Header** | `/booking/?slug={slug}` dynamic session detection, Walk-In Mode toggle, Admin Preview banner, staff phone privacy guard | **COMPLETED** | Sprint 7 (Architecture & Refactor) |
 | **FEAT-MOD-02** | **Dependency & Integration Pruning** | Pruned `@tailwindcss/forms`, `@tailwindcss/typography`, SockJS/Stomp CDN | **COMPLETED** | Sprint 7 (Architecture & Refactor) |
 | **FEAT-MOD-03** | **Module Decomposition & Types/Lib Extraction**| `/types/enums.js`, `/lib/validators.js`, `/lib/formatting.js`, `/lib/calendar.js`, `/lib/api-client.js` | **COMPLETED** | Sprint 7 (Architecture & Refactor) |
 | **FEAT-WS-01**  | Live Schedule Synchronization | WebSocket STOMP Broker `/ws`<br>`/topic/shop/{id}/slots` | **COMPLETED** | Sprint 3 (Real-Time) |
+| **FEAT-AUTH-01**| **Centralized Auth & BCrypt Password Encryption** | `/api/auth/login` (purged mocks & plaintext fallbacks, BCrypt cost 10) | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
+| **FEAT-AUTH-02**| **Public Customer Registration & Phone Normalization** | `/api/auth/register`<br>`frontend/login.html#register` (Saudi 05xxxxxxxx regex) | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
+| **FEAT-AUTH-03**| **Atomic Salon Owner Registration & Multi-Tenant Binding** | `/api/auth/register-salon`<br>`@Transactional` Shop + User with `salonId` | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
+| **FEAT-AUTH-04**| **Cryptographic Password Reset Engine** | `POST /api/auth/forgot-password`<br>`POST /api/auth/reset-password`<br>`V9__create_password_resets_table.sql` | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
+| **FEAT-AUTH-05**| **Role-Governed Authority Router & Redirection** | Dynamic post-login matrix across Admin, Salon Owner, Staff, Customer | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
+| **FEAT-AUTH-06**| **Super Admin CLI Seed Provisioning** | Idempotent CLI script `npm run seed:admin` (`scripts/seed-admin.js`) | **COMPLETED** | Sprint 8 (Unified Auth & Security) |
 
 ---
 

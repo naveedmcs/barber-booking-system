@@ -77,7 +77,7 @@ public class ShopController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "png") String format) throws Exception {
         Shop shop = shopService.getShopById(id);
-        String url = shop.getBookingUrl() != null ? shop.getBookingUrl() : "http://localhost:3000/booking.html?slug=" + shop.getSlug();
+        String url = shop.getBookingUrl() != null ? shop.getBookingUrl() : "http://localhost:3000/booking/?slug=" + shop.getSlug();
 
         if ("svg".equalsIgnoreCase(format)) {
             String svg = qrCodeService.generateQrCodeSvg(url, 300, 300);
@@ -98,7 +98,7 @@ public class ShopController {
     public ResponseEntity<byte[]> downloadShopQrZip(@PathVariable Long id) throws Exception {
         Shop shop = shopService.getShopById(id);
         String loginUrl = shop.getLoginUrl() != null ? shop.getLoginUrl() : "http://localhost:3000/dashboard/index.html?slug=" + shop.getSlug();
-        String bookingUrl = shop.getBookingUrl() != null ? shop.getBookingUrl() : "http://localhost:3000/booking.html?slug=" + shop.getSlug();
+        String bookingUrl = shop.getBookingUrl() != null ? shop.getBookingUrl() : "http://localhost:3000/booking/?slug=" + shop.getSlug();
 
         byte[] zipBytes = qrCodeService.generateQrZip(shop.getName(), shop.getSlug(), loginUrl, bookingUrl);
 

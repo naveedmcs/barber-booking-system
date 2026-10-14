@@ -177,7 +177,7 @@ elif [[ "${TUNNEL_PROVIDER}" == "cloudflared" ]]; then
     }
 
     function renderLoginPage(errorMsg, returnUrl) {
-      const escapedReturn = (returnUrl || "/booking.html?slug=golden-scissors").replace(/"/g, "&quot;");
+      const escapedReturn = (returnUrl || "/booking/?slug=golden-scissors").replace(/"/g, "&quot;");
       const errorHtml = errorMsg ? `<div style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; padding:0.75rem; border-radius:0.5rem; margin-bottom:1rem; font-size:0.875rem;">${errorMsg}</div>` : "";
       return `<!DOCTYPE html>
 <html lang="en">
@@ -257,7 +257,7 @@ elif [[ "${TUNNEL_PROVIDER}" == "cloudflared" ]]; then
           const params = new URLSearchParams(body);
           const u = params.get("username");
           const p = params.get("password");
-          const returnUrl = params.get("returnUrl") || "/booking.html?slug=golden-scissors";
+          const returnUrl = params.get("returnUrl") || "/booking/?slug=golden-scissors";
 
           if (isAuthorizedUser(u) && isAuthorizedPass(p)) {
             console.log(`[GATE] Form unlock SUCCESS: user="${u}" -> redirecting to ${returnUrl}`);
@@ -319,6 +319,21 @@ elif [[ "${TUNNEL_PROVIDER}" == "cloudflared" ]]; then
       const extraHeaders = {};
       if ((hasParamAuth || hasBasicAuth) && !hasAuthCookie) {
         extraHeaders["Set-Cookie"] = "barber_tunnel_auth=1; Path=/; SameSite=Lax; Max-Age=86400";
+      }
+
+      // Canonical Customer Booking Redirection (/book, /book.html, /booking.html -> /booking/)
+      if (
+        urlObj.pathname === "/book" ||
+        urlObj.pathname === "/book/" ||
+        urlObj.pathname === "/book.html" ||
+        urlObj.pathname === "/booking.html"
+      ) {
+        const canonicalTarget = "/booking/" + urlObj.search + urlObj.hash;
+        clientRes.writeHead(302, {
+          "Location": canonicalTarget,
+          ...extraHeaders
+        });
+        return clientRes.end();
       }
 
       // Route /api and /ws requests to backend port 8080 if available, else frontend 3000
@@ -436,11 +451,11 @@ elif [[ "${TUNNEL_PROVIDER}" == "cloudflared" ]]; then
     echo "  🎉 SECURE PUBLIC TUNNEL ACTIVE"
     echo "================================================================="
     echo "  Public URL:       ${TUNNEL_URL}"
-    echo "  Direct Booking:   ${TUNNEL_URL}/booking.html?slug=golden-scissors"
+    echo "  Direct Booking:   ${TUNNEL_URL}/booking/?slug=golden-scissors"
     echo "  Salon Portal:     ${TUNNEL_URL}/portal/index.html"
     echo ""
     echo "  ✨ 1-TAP INSTANT ACCESS LINK (Zero Typing Needed):"
-    echo "  ${TUNNEL_URL}/booking.html?slug=golden-scissors&auth=${AUTH_PASS}"
+    echo "  ${TUNNEL_URL}/booking/?slug=golden-scissors&auth=${AUTH_PASS}"
     echo ""
     echo "  Accepted Credentials (HTTP Basic Auth or Web Form):"
     echo "    Username:       ${AUTH_USER}  (or TUNNEL_USER)"

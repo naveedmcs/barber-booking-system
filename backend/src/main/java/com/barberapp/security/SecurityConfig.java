@@ -48,8 +48,8 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**", "/api/admin/**", "/api/portal/**", "/api/shops/register", "/api/payments/webhook", "/ws/**", "/error").permitAll()
-                        .requestMatchers("/", "/index.html", "/login.html", "/register.html", "/salons.html", "/book.html", "/booking.html", "/book/**", "/booking/**", "/booking", "/book", "/portal/**", "/salon-dashboard/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/v1/auth/**", "/api/dev/**", "/api/admin/**", "/api/portal/**", "/api/shops/register", "/api/payments/webhook", "/ws/**", "/error").permitAll()
+                        .requestMatchers("/", "/index.html", "/login.html", "/register.html", "/forgot-password.html", "/reset-password.html", "/salons.html", "/book.html", "/booking.html", "/book/**", "/booking/**", "/booking", "/book", "/portal/**", "/salon-dashboard/**").permitAll()
                         .requestMatchers("/src/**", "/dashboard/**", "/css/**", "/js/**", "/images/**", "/uploads/**", "/favicon.ico").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shops/**", "/api/services/**", "/api/barbers/**", "/api/slots/**", "/api/bookings/**", "/api/admin/**").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/shops/**", "/api/services/**", "/api/barbers/**", "/api/slots/**", "/api/bookings/**", "/api/admin/**").permitAll()

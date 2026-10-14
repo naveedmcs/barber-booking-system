@@ -1639,7 +1639,7 @@ public class SalonPortalController {
                 .operatingHoursJson(shop.getOperatingHoursJson() != null ? shop.getOperatingHoursJson() : defaultHours)
                 .bookingUrl(shop.getBookingUrl() != null && !shop.getBookingUrl().isBlank()
                         ? shop.getBookingUrl()
-                        : "http://localhost:3000/booking.html?slug=" + shop.getSlug())
+                        : "http://localhost:3000/booking/?slug=" + shop.getSlug())
                 .qrCodeUrl(shop.getQrCodeUrl())
                 .build());
     }

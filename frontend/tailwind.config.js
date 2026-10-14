@@ -6,7 +6,6 @@ module.exports = {
     "./portal/**/*.html",
     "./admin/**/*.html",
     "./booking/**/*.html",
-    "./book/**/*.html",
     "./src/js/**/*.js",
   ],
   darkMode: "class",

@@ -340,7 +340,7 @@ export const Store = {
       return shops.map((s) => ({
         ...s,
         loginUrl: s.loginUrl || `${origin}/dashboard/index.html?slug=${s.slug}`,
-        bookingUrl: s.bookingUrl || `${origin}/booking.html?slug=${s.slug}`
+        bookingUrl: s.bookingUrl || `${origin}/booking/?slug=${s.slug}`
       }));
     } catch {
       return DEFAULT_SHOPS;
@@ -394,47 +394,9 @@ export const Store = {
   },
 
   loginSalonAdmin(emailOrPhone) {
-    const shops = this.getShops();
-    const clean = (emailOrPhone || "").trim();
-
-    // Super Admin fallback support
-    if (clean.toLowerCase() === "admin@barberapp.sa" || clean.toLowerCase() === "admin") {
-      const adminUser = {
-        token: "mock-jwt-token-super-admin-" + Date.now(),
-        role: "SUPER_ADMIN",
-        userId: 999,
-        email: "admin@barberapp.sa",
-        fullName: "Super Administrator",
-        salonId: null,
-        salonSlug: null,
-        salonName: "Global System"
-      };
-      this.setCurrentUser(adminUser, true);
-      return { success: true, shop: null, user: adminUser };
-    }
-
-    const matchedShop = shops.find((s) => 
-      (s.ownerEmail && s.ownerEmail.toLowerCase() === clean.toLowerCase()) ||
-      (s.phone && s.phone === clean) ||
-      (s.slug && s.slug === clean) ||
-      (s.id && s.id === clean)
-    );
-
-    if (matchedShop) {
-      const sessionUser = {
-        token: "mock-jwt-token-salon-owner-" + Date.now(),
-        role: "SALON_OWNER",
-        userId: 139,
-        email: matchedShop.ownerEmail || "owner@goldenscissors.sa",
-        fullName: matchedShop.owner || "Tariq Al-Mansoor",
-        salonId: (matchedShop.slug === "golden-scissors" || matchedShop.id === 1) ? 53 : matchedShop.id,
-        salonSlug: matchedShop.slug,
-        salonName: matchedShop.name
-      };
-      this.setCurrentUser(sessionUser, true);
-      return { success: true, shop: matchedShop, user: sessionUser };
-    }
-    return { success: false, message: "No registered salon matched this email/phone." };
+    // Deprecated mock method - production authentication uses AuthController (/api/auth/login)
+    console.warn("Direct Store.loginSalonAdmin mock login is disabled. Use real backend authentication.");
+    return { success: false, message: "Mock login disabled. Please use real database credentials." };
   },
 
   saveShop(shop) {
@@ -443,7 +405,7 @@ export const Store = {
       shop.loginUrl = `${origin}/dashboard/index.html?slug=${shop.slug}`;
     }
     if (!shop.bookingUrl) {
-      shop.bookingUrl = `${origin}/booking.html?slug=${shop.slug}`;
+      shop.bookingUrl = `${origin}/booking/?slug=${shop.slug}`;
     }
     const shops = this.getShops();
     const existingIdx = shops.findIndex((s) => s.slug === shop.slug || s.id === shop.id);

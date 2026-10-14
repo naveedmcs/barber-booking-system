@@ -219,7 +219,7 @@ function populateFormFields(data) {
   }
 
   // Public Booking & QR Info
-  const bookingUrl = data.bookingUrl || `http://localhost:3000/booking.html?slug=${data.slug || "golden-scissors"}`;
+  const bookingUrl = data.bookingUrl || `http://localhost:3000/booking/?slug=${data.slug || "golden-scissors"}`;
   const bookingUrlDisplay = document.getElementById("booking-url-display");
   if (bookingUrlDisplay) bookingUrlDisplay.innerText = bookingUrl;
 
